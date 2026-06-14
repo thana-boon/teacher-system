@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("teacher") // admin, teacher, kiosk
+  createdAt DateTime @default(now())
+  teacher   Teacher?
+}
+
+model Teacher {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id])
+  photoBase64 String?
+  faceData    String?      // JSON embeddings สำหรับ face-api.js
+  subject     String?
+  phone       String?
+  createdAt   DateTime     @default(now())
+  schedules   Schedule[]
+  leaves      Leave[]
+  attendances Attendance[]
+}
+
+model Schedule {
+  id          String       @id @default(cuid())
+  teacherId   String
+  teacher     Teacher      @relation(fields: [teacherId], references: [id])
+  dayOfWeek   Int          // 1-5 จันทร์-ศุกร์
+  period      Int          // คาบที่
+  room        String
+  subject     String
+  createdAt   DateTime     @default(now())
+  attendances Attendance[]
+}
+
+model Leave {
+  id            String    @id @default(cuid())
+  teacherId     String
+  teacher       Teacher   @relation(fields: [teacherId], references: [id])
+  date          DateTime
+  reason        String
+  type          String    // sick, personal, other
+  status        String    @default("pending") // pending, approved, rejected
+  substituteId  String?
+  createdAt     DateTime  @default(now())
+}
+
+model Attendance {
+  id          String    @id @default(cuid())
+  teacherId   String
+  teacher     Teacher   @relation(fields: [teacherId], references: [id])
+  scheduleId  String?
+  schedule    Schedule? @relation(fields: [scheduleId], references: [id])
+  checkIn     DateTime?
+  checkOut    DateTime?
+  method      String    @default("face") // face, manual
+  createdAt   DateTime  @default(now())
+}
