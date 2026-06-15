@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { LEAVE_STATUS, leaveTypeLabel, formatThaiDate, dayLabel } from "@/lib/constants";
+import { useDialog } from "@/components/DialogProvider";
 
 type Substitution = {
   scheduleId: string;
@@ -52,6 +53,7 @@ export default function LeavesPage() {
   const [filter, setFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState("");
+  const { alert } = useDialog();
 
   // Approve modal state
   const [approving, setApproving] = useState<Leave | null>(null);
@@ -116,7 +118,7 @@ export default function LeavesPage() {
     if (res.ok) {
       setApproving(null);
       await load();
-    } else alert("ทำรายการไม่สำเร็จ");
+    } else await alert("ทำรายการไม่สำเร็จ");
   }
 
   async function reject(id: string) {
@@ -127,7 +129,7 @@ export default function LeavesPage() {
       body: JSON.stringify({ status: "rejected" }),
     });
     if (res.ok) await load();
-    else alert("ทำรายการไม่สำเร็จ");
+    else await alert("ทำรายการไม่สำเร็จ");
     setBusyId("");
   }
 

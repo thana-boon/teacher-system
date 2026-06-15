@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
+import DialogProvider from "@/components/DialogProvider";
 
 const notoThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
@@ -31,7 +32,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" data-theme="bumblebee" className={`${notoThai.variable} h-full`}>
-      <body className="min-h-full bg-base-200 antialiased">{children}</body>
+      <body className="min-h-full bg-base-200 antialiased">
+        <DialogProvider>{children}</DialogProvider>
+      </body>
     </html>
   );
 }

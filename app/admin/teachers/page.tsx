@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { fileToDataUrl } from "@/lib/image";
 import { getDescriptorFromDataUrl } from "@/lib/face";
 import FaceEnrollModal from "@/components/FaceEnrollModal";
+import { useDialog } from "@/components/DialogProvider";
 
 type Teacher = {
   id: string;
@@ -50,6 +51,7 @@ export default function TeachersPage() {
   const [error, setError] = useState("");
   const [faceStatus, setFaceStatus] = useState("");
   const [enrollFor, setEnrollFor] = useState<Teacher | null>(null);
+  const { confirm, alert } = useDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -154,10 +156,11 @@ export default function TeachersPage() {
   }
 
   async function remove(t: Teacher) {
-    if (!confirm(`ลบครู "${t.name}" และข้อมูลทั้งหมด?`)) return;
+    if (!(await confirm(`ลบครู "${t.name}" และข้อมูลทั้งหมด?`, { danger: true, confirmText: "ลบ" })))
+      return;
     const res = await fetch(`/api/teachers/${t.id}`, { method: "DELETE" });
     if (res.ok) await load();
-    else alert("ลบไม่สำเร็จ");
+    else await alert("ลบไม่สำเร็จ");
   }
 
   return (

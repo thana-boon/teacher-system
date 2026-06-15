@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { DAYS, DEFAULT_PERIODS, periodTime, type PeriodSlot } from "@/lib/constants";
+import { useDialog } from "@/components/DialogProvider";
 
 type Teacher = { id: string; name: string; subject: string | null };
 type Schedule = {
@@ -30,6 +31,7 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(false);
   const [cell, setCell] = useState<CellForm | null>(null);
   const [saving, setSaving] = useState(false);
+  const { alert } = useDialog();
 
   useEffect(() => {
     fetch("/api/teachers")
@@ -103,7 +105,7 @@ export default function SchedulePage() {
         setCell(null);
         await loadSchedules();
       } else {
-        alert((await res.json().catch(() => ({}))).error ?? "บันทึกไม่สำเร็จ");
+        await alert((await res.json().catch(() => ({}))).error ?? "บันทึกไม่สำเร็จ");
       }
     } finally {
       setSaving(false);
@@ -118,7 +120,7 @@ export default function SchedulePage() {
       if (res.ok) {
         setCell(null);
         await loadSchedules();
-      } else alert("ลบไม่สำเร็จ");
+      } else await alert("ลบไม่สำเร็จ");
     } finally {
       setSaving(false);
     }

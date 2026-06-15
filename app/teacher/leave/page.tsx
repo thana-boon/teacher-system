@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { LEAVE_TYPES, LEAVE_STATUS, leaveTypeLabel, formatThaiDate } from "@/lib/constants";
 import ThaiDatePicker from "@/components/ThaiDatePicker";
+import { useDialog } from "@/components/DialogProvider";
 
 function todayStr() {
   const d = new Date();
@@ -32,6 +33,7 @@ export default function TeacherLeavePage() {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { confirm, alert } = useDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,10 +71,10 @@ export default function TeacherLeavePage() {
   }
 
   async function withdraw(id: string) {
-    if (!confirm("ถอนคำขอลานี้?")) return;
+    if (!(await confirm("ถอนคำขอลานี้?", { danger: true, confirmText: "ถอน" }))) return;
     const res = await fetch(`/api/leaves/${id}`, { method: "DELETE" });
     if (res.ok) await load();
-    else alert("ถอนคำขอไม่สำเร็จ");
+    else await alert("ถอนคำขอไม่สำเร็จ");
   }
 
   return (

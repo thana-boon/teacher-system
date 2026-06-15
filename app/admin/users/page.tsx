@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useDialog } from "@/components/DialogProvider";
 
 type User = {
   id: string;
@@ -40,6 +41,7 @@ export default function UsersPage() {
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { confirm, alert } = useDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,10 +106,11 @@ export default function UsersPage() {
   }
 
   async function remove(u: User) {
-    if (!confirm(`ลบผู้ใช้ "${u.name}" (${u.email})?`)) return;
+    if (!(await confirm(`ลบผู้ใช้ "${u.name}" (${u.email ?? u.username ?? ""})?`, { danger: true, confirmText: "ลบ" })))
+      return;
     const res = await fetch(`/api/users/${u.id}`, { method: "DELETE" });
     if (res.ok) await load();
-    else alert((await res.json().catch(() => ({}))).error ?? "ลบไม่สำเร็จ");
+    else await alert((await res.json().catch(() => ({}))).error ?? "ลบไม่สำเร็จ");
   }
 
   return (
