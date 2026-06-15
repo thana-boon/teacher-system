@@ -23,12 +23,39 @@ export async function PATCH(
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
 
-  // Update User fields (name / password)
-  const userData: { name?: string; password?: string } = {};
+  // Update User fields (name / username / email / password)
+  const userData: {
+    name?: string;
+    username?: string | null;
+    email?: string | null;
+    password?: string;
+  } = {};
   if (typeof body.name === "string" && body.name.trim())
     userData.name = body.name.trim();
   if (typeof body.password === "string" && body.password.length >= 6)
     userData.password = await hashPassword(body.password);
+  if ("username" in body)
+    userData.username = String(body.username ?? "").trim().toLowerCase() || null;
+  if ("email" in body)
+    userData.email = String(body.email ?? "").trim().toLowerCase() || null;
+
+  if (userData.username || userData.email) {
+    const dup = await prisma.user.findFirst({
+      where: {
+        id: { not: teacher.userId },
+        OR: [
+          ...(userData.username ? [{ username: userData.username }] : []),
+          ...(userData.email ? [{ email: userData.email }] : []),
+        ],
+      },
+    });
+    if (dup) {
+      return NextResponse.json(
+        { error: "ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้งานแล้ว" },
+        { status: 409 },
+      );
+    }
+  }
 
   if (Object.keys(userData).length) {
     await prisma.user.update({ where: { id: teacher.userId }, data: userData });

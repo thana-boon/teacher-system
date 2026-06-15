@@ -28,11 +28,46 @@ export async function PATCH(
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
 
-  const data: { name?: string; password?: string; role?: string } = {};
+  const data: {
+    name?: string;
+    username?: string | null;
+    email?: string | null;
+    password?: string;
+    role?: string;
+  } = {};
   if (typeof body.name === "string" && body.name.trim())
     data.name = body.name.trim();
   if (typeof body.password === "string" && body.password.length >= 6)
     data.password = await hashPassword(body.password);
+
+  // username / email — normalize, ensure uniqueness, keep at least one
+  if ("username" in body) data.username = String(body.username ?? "").trim().toLowerCase() || null;
+  if ("email" in body) data.email = String(body.email ?? "").trim().toLowerCase() || null;
+  const nextUsername = "username" in data ? data.username : user.username;
+  const nextEmail = "email" in data ? data.email : user.email;
+  if (!nextUsername && !nextEmail) {
+    return NextResponse.json(
+      { error: "ต้องมีชื่อผู้ใช้ หรืออีเมล อย่างน้อยหนึ่งอย่าง" },
+      { status: 400 },
+    );
+  }
+  if (data.username || data.email) {
+    const dup = await prisma.user.findFirst({
+      where: {
+        id: { not: id },
+        OR: [
+          ...(data.username ? [{ username: data.username }] : []),
+          ...(data.email ? [{ email: data.email }] : []),
+        ],
+      },
+    });
+    if (dup) {
+      return NextResponse.json(
+        { error: "ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้งานแล้ว" },
+        { status: 409 },
+      );
+    }
+  }
   if (typeof body.role === "string" && ROLES.includes(body.role)) {
     if (body.role !== user.role && id === session.sub) {
       return NextResponse.json(

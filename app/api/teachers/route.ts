@@ -17,7 +17,7 @@ export async function GET() {
       phone: true,
       photoBase64: true,
       faceData: true,
-      user: { select: { id: true, name: true, email: true } },
+      user: { select: { id: true, name: true, username: true, email: true } },
     },
   });
 
@@ -25,6 +25,7 @@ export async function GET() {
   const list = teachers.map((t) => ({
     id: t.id,
     name: t.user.name,
+    username: t.user.username,
     email: t.user.email,
     subject: t.subject,
     phone: t.phone,
@@ -48,22 +49,36 @@ export async function POST(request: Request) {
   }
 
   const name = String(body.name ?? "").trim();
-  const email = String(body.email ?? "").trim().toLowerCase();
+  const username = String(body.username ?? "").trim().toLowerCase() || null;
+  const email = String(body.email ?? "").trim().toLowerCase() || null;
   const password = String(body.password ?? "");
   const subject = body.subject ? String(body.subject).trim() : null;
   const phone = body.phone ? String(body.phone).trim() : null;
 
-  if (!name || !email || password.length < 6) {
+  if (!name || password.length < 6) {
     return NextResponse.json(
-      { error: "กรุณากรอกชื่อ อีเมล และรหัสผ่าน (อย่างน้อย 6 ตัว)" },
+      { error: "กรุณากรอกชื่อ และรหัสผ่าน (อย่างน้อย 6 ตัว)" },
+      { status: 400 },
+    );
+  }
+  if (!username && !email) {
+    return NextResponse.json(
+      { error: "ต้องระบุชื่อผู้ใช้ หรืออีเมล อย่างน้อยหนึ่งอย่าง" },
       { status: 400 },
     );
   }
 
-  const exists = await prisma.user.findUnique({ where: { email } });
+  const exists = await prisma.user.findFirst({
+    where: {
+      OR: [
+        ...(username ? [{ username }] : []),
+        ...(email ? [{ email }] : []),
+      ],
+    },
+  });
   if (exists) {
     return NextResponse.json(
-      { error: "อีเมลนี้ถูกใช้งานแล้ว" },
+      { error: "ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้งานแล้ว" },
       { status: 409 },
     );
   }
@@ -71,6 +86,7 @@ export async function POST(request: Request) {
   const user = await prisma.user.create({
     data: {
       name,
+      username,
       email,
       password: await hashPassword(password),
       role: "teacher",
@@ -80,7 +96,7 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(
-    { id: user.teacher!.id, name: user.name, email: user.email },
+    { id: user.teacher!.id, name: user.name },
     { status: 201 },
   );
 }

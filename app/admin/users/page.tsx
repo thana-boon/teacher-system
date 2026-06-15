@@ -5,7 +5,8 @@ import { useEffect, useState, useCallback } from "react";
 type User = {
   id: string;
   name: string;
-  email: string;
+  username: string | null;
+  email: string | null;
   role: string;
   createdAt: string;
 };
@@ -13,6 +14,7 @@ type User = {
 type FormState = {
   id?: string;
   name: string;
+  username: string;
   email: string;
   password: string;
   role: string;
@@ -20,6 +22,7 @@ type FormState = {
 
 const EMPTY: FormState = {
   name: "",
+  username: "",
   email: "",
   password: "",
   role: "admin",
@@ -55,7 +58,14 @@ export default function UsersPage() {
   }
   function openEdit(u: User) {
     setError("");
-    setForm({ id: u.id, name: u.name, email: u.email, password: "", role: u.role });
+    setForm({
+      id: u.id,
+      name: u.name,
+      username: u.username ?? "",
+      email: u.email ?? "",
+      password: "",
+      role: u.role,
+    });
   }
 
   async function save() {
@@ -65,9 +75,13 @@ export default function UsersPage() {
     try {
       const isEdit = !!form.id;
       const url = isEdit ? `/api/users/${form.id}` : "/api/users";
-      const payload: Record<string, unknown> = { name: form.name, role: form.role };
+      const payload: Record<string, unknown> = {
+        name: form.name,
+        role: form.role,
+        username: form.username,
+        email: form.email,
+      };
       if (!isEdit) {
-        payload.email = form.email;
         payload.password = form.password;
       } else if (form.password) {
         payload.password = form.password;
@@ -122,6 +136,7 @@ export default function UsersPage() {
                 <thead>
                   <tr>
                     <th>ชื่อ</th>
+                    <th>ชื่อผู้ใช้</th>
                     <th>อีเมล</th>
                     <th>Role</th>
                     <th className="text-right">จัดการ</th>
@@ -133,7 +148,8 @@ export default function UsersPage() {
                     return (
                       <tr key={u.id}>
                         <td className="font-medium">{u.name}</td>
-                        <td className="text-sm">{u.email}</td>
+                        <td className="text-sm">{u.username ?? "-"}</td>
+                        <td className="text-sm">{u.email ?? "-"}</td>
                         <td>
                           <span className={`badge badge-sm ${r.badge}`}>{r.label}</span>
                         </td>
@@ -168,12 +184,20 @@ export default function UsersPage() {
               />
               <input
                 className="input input-bordered w-full"
-                placeholder="อีเมล"
+                placeholder="ชื่อผู้ใช้ (สำหรับเข้าสู่ระบบ)"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+              />
+              <input
+                className="input input-bordered w-full"
+                placeholder="อีเมล (ไม่บังคับ)"
                 type="email"
                 value={form.email}
-                disabled={!!form.id}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
+              <p className="text-xs text-base-content/50">
+                * กรอกชื่อผู้ใช้ หรืออีเมล อย่างน้อยหนึ่งอย่าง (ใช้เข้าสู่ระบบได้ทั้งคู่)
+              </p>
               <input
                 className="input input-bordered w-full"
                 placeholder={form.id ? "รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)" : "รหัสผ่าน (อย่างน้อย 6 ตัว)"}

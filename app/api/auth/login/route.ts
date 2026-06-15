@@ -4,29 +4,30 @@ import { verifyPassword, setSessionCookie } from "@/lib/auth";
 import { signToken, type Role } from "@/lib/jwt";
 
 export async function POST(request: Request) {
-  let body: { email?: string; password?: string };
+  let body: { identifier?: string; email?: string; password?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
 
-  const email = body.email?.trim().toLowerCase();
+  // Accept either a username or an email in a single field.
+  const identifier = (body.identifier ?? body.email ?? "").trim().toLowerCase();
   const password = body.password ?? "";
-  if (!email || !password) {
+  if (!identifier || !password) {
     return NextResponse.json(
-      { error: "กรุณากรอกอีเมลและรหัสผ่าน" },
+      { error: "กรุณากรอกชื่อผู้ใช้/อีเมล และรหัสผ่าน" },
       { status: 400 },
     );
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
+  const user = await prisma.user.findFirst({
+    where: { OR: [{ username: identifier }, { email: identifier }] },
     include: { teacher: { select: { id: true } } },
   });
   if (!user || !(await verifyPassword(password, user.password))) {
     return NextResponse.json(
-      { error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" },
+      { error: "ชื่อผู้ใช้/อีเมล หรือรหัสผ่านไม่ถูกต้อง" },
       { status: 401 },
     );
   }

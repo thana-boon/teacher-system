@@ -20,7 +20,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -61,17 +61,17 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="form-control">
-              <label className="label" htmlFor="email">
-                <span className="label-text">อีเมล</span>
+              <label className="label" htmlFor="identifier">
+                <span className="label-text">ชื่อผู้ใช้ หรือ อีเมล</span>
               </label>
               <input
-                id="email"
-                type="email"
+                id="identifier"
+                type="text"
                 autoComplete="username"
                 className="input input-bordered w-full"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@school.ac.th"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="เช่น admin หรือ you@school.ac.th"
                 required
               />
             </div>

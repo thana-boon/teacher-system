@@ -13,7 +13,7 @@ export async function GET() {
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: { id: true, name: true, username: true, email: true, role: true, createdAt: true },
   });
   return NextResponse.json(users);
 }
@@ -27,25 +27,43 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const name = String(body?.name ?? "").trim();
-  const email = String(body?.email ?? "").trim().toLowerCase();
+  const username = String(body?.username ?? "").trim().toLowerCase() || null;
+  const email = String(body?.email ?? "").trim().toLowerCase() || null;
   const password = String(body?.password ?? "");
   const role = String(body?.role ?? "");
 
-  if (!name || !email || password.length < 6 || !ROLES.includes(role)) {
+  if (!name || password.length < 6 || !ROLES.includes(role)) {
     return NextResponse.json(
       { error: "กรุณากรอกข้อมูลให้ครบ (รหัสผ่านอย่างน้อย 6 ตัว)" },
       { status: 400 },
     );
   }
+  if (!username && !email) {
+    return NextResponse.json(
+      { error: "ต้องระบุชื่อผู้ใช้ หรืออีเมล อย่างน้อยหนึ่งอย่าง" },
+      { status: 400 },
+    );
+  }
 
-  const exists = await prisma.user.findUnique({ where: { email } });
-  if (exists) {
-    return NextResponse.json({ error: "อีเมลนี้ถูกใช้งานแล้ว" }, { status: 409 });
+  const dup = await prisma.user.findFirst({
+    where: {
+      OR: [
+        ...(username ? [{ username }] : []),
+        ...(email ? [{ email }] : []),
+      ],
+    },
+  });
+  if (dup) {
+    return NextResponse.json(
+      { error: "ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้งานแล้ว" },
+      { status: 409 },
+    );
   }
 
   await prisma.user.create({
     data: {
       name,
+      username,
       email,
       password: await hashPassword(password),
       role,

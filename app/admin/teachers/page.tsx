@@ -5,7 +5,8 @@ import { useEffect, useState, useCallback } from "react";
 type Teacher = {
   id: string;
   name: string;
-  email: string;
+  username: string | null;
+  email: string | null;
   subject: string | null;
   phone: string | null;
   hasPhoto: boolean;
@@ -15,6 +16,7 @@ type Teacher = {
 type FormState = {
   id?: string;
   name: string;
+  username: string;
   email: string;
   password: string;
   subject: string;
@@ -25,6 +27,7 @@ type FormState = {
 
 const EMPTY: FormState = {
   name: "",
+  username: "",
   email: "",
   password: "",
   subject: "",
@@ -67,7 +70,8 @@ export default function TeachersPage() {
     setForm({
       id: t.id,
       name: t.name,
-      email: t.email,
+      username: t.username ?? "",
+      email: t.email ?? "",
       password: "",
       subject: t.subject ?? "",
       phone: t.phone ?? "",
@@ -97,11 +101,12 @@ export default function TeachersPage() {
       const method = isEdit ? "PATCH" : "POST";
       const payload: Record<string, unknown> = {
         name: form.name,
+        username: form.username,
+        email: form.email,
         subject: form.subject,
         phone: form.phone,
       };
       if (!isEdit) {
-        payload.email = form.email;
         payload.password = form.password;
       } else if (form.password) {
         payload.password = form.password;
@@ -155,6 +160,7 @@ export default function TeachersPage() {
                 <thead>
                   <tr>
                     <th>ชื่อ</th>
+                    <th>ชื่อผู้ใช้</th>
                     <th>อีเมล</th>
                     <th>วิชา</th>
                     <th>เบอร์โทร</th>
@@ -166,7 +172,8 @@ export default function TeachersPage() {
                   {teachers.map((t) => (
                     <tr key={t.id}>
                       <td className="font-medium">{t.name}</td>
-                      <td className="text-sm">{t.email}</td>
+                      <td className="text-sm">{t.username ?? "-"}</td>
+                      <td className="text-sm">{t.email ?? "-"}</td>
                       <td>{t.subject ?? "-"}</td>
                       <td>{t.phone ?? "-"}</td>
                       <td>
@@ -230,10 +237,15 @@ export default function TeachersPage() {
               />
               <input
                 className="input input-bordered w-full"
-                placeholder="อีเมล"
+                placeholder="ชื่อผู้ใช้ (สำหรับเข้าสู่ระบบ)"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+              />
+              <input
+                className="input input-bordered w-full"
+                placeholder="อีเมล (ไม่บังคับ)"
                 type="email"
                 value={form.email}
-                disabled={!!form.id}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
               <input

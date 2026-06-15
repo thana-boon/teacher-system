@@ -17,12 +17,12 @@ const prisma = new PrismaClient({ adapter });
 
 const PASSWORD = "password123";
 
-async function upsertUser({ email, name, role }) {
+async function upsertUser({ email, username, name, role }) {
   const password = await bcrypt.hash(PASSWORD, 10);
   return prisma.user.upsert({
     where: { email },
-    update: { name, role, password },
-    create: { email, name, role, password },
+    update: { name, role, password, username },
+    create: { email, username, name, role, password },
   });
 }
 
@@ -45,11 +45,13 @@ async function main() {
   // --- Admin & Kiosk accounts ---
   await upsertUser({
     email: "admin@school.ac.th",
+    username: "admin",
     name: "ผู้ดูแลระบบ",
     role: "admin",
   });
   await upsertUser({
     email: "kiosk@school.ac.th",
+    username: "kiosk",
     name: "เครื่องเช็คชื่อ",
     role: "kiosk",
   });
@@ -58,18 +60,21 @@ async function main() {
   const teacherDefs = [
     {
       email: "somchai@school.ac.th",
+      username: "somchai",
       name: "สมชาย ใจดี",
       subject: "คณิตศาสตร์",
       phone: "081-111-1111",
     },
     {
       email: "somying@school.ac.th",
+      username: "somying",
       name: "สมหญิง รักเรียน",
       subject: "ภาษาไทย",
       phone: "082-222-2222",
     },
     {
       email: "mana@school.ac.th",
+      username: "mana",
       name: "มานะ ตั้งใจ",
       subject: "วิทยาศาสตร์",
       phone: "083-333-3333",
@@ -80,6 +85,7 @@ async function main() {
   for (const def of teacherDefs) {
     const user = await upsertUser({
       email: def.email,
+      username: def.username,
       name: def.name,
       role: "teacher",
     });
@@ -117,10 +123,12 @@ async function main() {
   await prisma.schedule.createMany({ data: scheduleRows });
 
   console.log("Seed complete ✅");
-  console.log(`  Accounts (password: ${PASSWORD}):`);
-  console.log("    admin@school.ac.th   (admin)");
-  console.log("    kiosk@school.ac.th   (kiosk)");
-  teacherDefs.forEach((t) => console.log(`    ${t.email} (teacher)`));
+  console.log(`  Accounts (password: ${PASSWORD}) — login with username or email:`);
+  console.log("    admin  / admin@school.ac.th   (admin)");
+  console.log("    kiosk  / kiosk@school.ac.th   (kiosk)");
+  teacherDefs.forEach((t) =>
+    console.log(`    ${t.username} / ${t.email} (teacher)`),
+  );
   console.log(`  Schedules created: ${scheduleRows.length}`);
 }
 
