@@ -8,6 +8,7 @@ export type SiteSettings = {
   periods: PeriodSlot[];
   currentYear: number;
   currentTerm: number;
+  lateGraceMinutes: number;
 };
 
 export const DEFAULT_SCHOOL_NAME = "โรงเรียนตัวอย่าง";
@@ -40,5 +41,6 @@ export async function getSettings(): Promise<SiteSettings> {
     periods: parsePeriods(row?.periods),
     currentYear: row?.currentYear ?? 2569,
     currentTerm: row?.currentTerm ?? 1,
+    lateGraceMinutes: row?.lateGraceMinutes ?? 5,
   };
 }

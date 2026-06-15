@@ -9,15 +9,12 @@ import {
   formatThaiTime,
 } from "@/lib/constants";
 import { getSettings } from "@/lib/settings";
+import { zonedDayRange, zonedWeekday } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
 function todayRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-  return { gte: start, lte: end };
+  return zonedDayRange();
 }
 
 function weekRange() {
@@ -36,8 +33,7 @@ export default async function TeacherDashboard() {
   const session = await getSessionWithRole("teacher");
   if (!session?.teacherId) redirect("/login");
 
-  const jsDay = new Date().getDay(); // 0=Sun..6=Sat
-  const todayDow = jsDay === 0 || jsDay === 6 ? null : jsDay; // 1..5 weekdays
+  const todayDow = zonedWeekday(); // 1..5 weekdays in school tz, else null
   const today = todayRange();
   const week = weekRange();
   const settings = await getSettings();
@@ -58,7 +54,13 @@ export default async function TeacherDashboard() {
         : Promise.resolve([]),
       prisma.attendance.findMany({
         where: { teacherId: session.teacherId, checkIn: today },
-        select: { scheduleId: true, checkIn: true, checkOut: true },
+        select: {
+          scheduleId: true,
+          checkIn: true,
+          checkOut: true,
+          status: true,
+          lateMinutes: true,
+        },
       }),
       prisma.attendance.count({
         where: { teacherId: session.teacherId, checkIn: week },
@@ -155,9 +157,15 @@ export default async function TeacherDashboard() {
                     </div>
                     {att ? (
                       <div className="text-right text-sm">
-                        <span className="badge badge-success badge-sm">
-                          เช็คชื่อแล้ว
-                        </span>
+                        {att.status === "late" ? (
+                          <span className="badge badge-error badge-sm">
+                            สาย {att.lateMinutes ?? 0} นาที
+                          </span>
+                        ) : (
+                          <span className="badge badge-success badge-sm">
+                            {att.status === "on_time" ? "ตรงเวลา" : "เช็คชื่อแล้ว"}
+                          </span>
+                        )}
                         <div className="text-base-content/50">
                           {formatThaiTime(att.checkIn)}
                           {att.checkOut && ` - ${formatThaiTime(att.checkOut)}`}

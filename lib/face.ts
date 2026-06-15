@@ -61,6 +61,7 @@ export async function getDescriptorFromDataUrl(
 export type FaceCandidate = {
   teacherId: string;
   name: string;
+  photo?: string | null;
   descriptors: number[][];
 };
 

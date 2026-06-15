@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { zonedDayRange } from "@/lib/time";
 
 // GET /api/kiosk/room-status?room=... — is anyone currently checked in to this
 // room today? Public (kiosk has no login). Drives which button the kiosk shows.
@@ -9,13 +10,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "ต้องระบุห้อง" }, { status: 400 });
   }
 
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
+  const { gte, lte } = zonedDayRange();
 
   const open = await prisma.attendance.findFirst({
-    where: { room, checkIn: { gte: start, lte: end }, checkOut: null },
+    where: { room, checkIn: { gte, lte }, checkOut: null },
     orderBy: { checkIn: "desc" },
     select: {
       checkIn: true,

@@ -9,7 +9,7 @@ type Props = {
   onClose: () => void;
 };
 
-type TeacherLite = { teacherId: string; name: string };
+type TeacherLite = { teacherId: string; name: string; photo?: string | null };
 
 export default function KioskScanModal({ room, type, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -19,7 +19,12 @@ export default function KioskScanModal({ room, type, onClose }: Props) {
 
   const [status, setStatus] = useState("กำลังเตรียมกล้อง…");
   const [ready, setReady] = useState(false);
-  const [result, setResult] = useState<{ name: string; ok: boolean; text: string } | null>(null);
+  const [result, setResult] = useState<{
+    name: string;
+    ok: boolean;
+    text: string;
+    photo?: string | null;
+  } | null>(null);
   const [manual, setManual] = useState(false);
   const [allTeachers, setAllTeachers] = useState<TeacherLite[]>([]);
   const [manualId, setManualId] = useState("");
@@ -29,6 +34,10 @@ export default function KioskScanModal({ room, type, onClose }: Props) {
 
   async function doCheckin(teacherId: string, method: "face" | "manual") {
     setSubmitting(true);
+    const photo =
+      candidatesRef.current.find((c) => c.teacherId === teacherId)?.photo ??
+      allTeachers.find((t) => t.teacherId === teacherId)?.photo ??
+      null;
     const res = await fetch("/api/kiosk/checkin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -41,10 +50,21 @@ export default function KioskScanModal({ room, type, onClose }: Props) {
       return;
     }
     const verb = type === "in" ? "เข้าสอน" : "ออกจากห้อง";
+    let suffix = "";
+    if (type === "in" && data.status === "late" && data.lateMinutes) {
+      suffix = ` (สาย ${data.lateMinutes} นาที)`;
+    } else if (type === "in" && data.status === "on_time") {
+      suffix = " (ตรงเวลา)";
+    } else if (type === "out" && data.earlyMinutes) {
+      suffix = ` (ก่อนหมดคาบ ${data.earlyMinutes} นาที)`;
+    }
     setResult({
       name: data.name,
       ok: true,
-      text: data.already ? `${data.name} เช็คชื่อไปแล้ว` : `${data.name} ${verb}สำเร็จ`,
+      photo,
+      text: data.already
+        ? `${data.name} เช็คชื่อไปแล้ว`
+        : `${data.name} ${verb}สำเร็จ${suffix}`,
     });
     // Auto-close after a few seconds.
     setTimeout(onClose, 3000);
@@ -132,8 +152,18 @@ export default function KioskScanModal({ room, type, onClose }: Props) {
 
         {result ? (
           <div className="py-8 text-center">
-            <div className="text-6xl">{result.ok ? "✅" : "❌"}</div>
-            <p className="mt-3 text-xl font-bold">{result.text}</p>
+            {result.ok && result.photo ? (
+              <div className="avatar">
+                <div className="mx-auto w-32 rounded-full ring-4 ring-success ring-offset-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={result.photo} alt={result.name} />
+                </div>
+              </div>
+            ) : (
+              <div className="text-7xl">{result.ok ? "✅" : "❌"}</div>
+            )}
+            {result.ok && result.photo && <div className="mt-2 text-5xl">✅</div>}
+            <p className="mt-3 text-2xl font-bold">{result.text}</p>
           </div>
         ) : manual ? (
           <div className="mt-4 space-y-3">

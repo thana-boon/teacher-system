@@ -9,16 +9,25 @@ export async function GET(request: Request) {
   if (all) {
     const list = await prisma.teacher.findMany({
       orderBy: { createdAt: "asc" },
-      select: { id: true, user: { select: { name: true } } },
+      select: { id: true, photoBase64: true, user: { select: { name: true } } },
     });
     return NextResponse.json({
-      teachers: list.map((t) => ({ teacherId: t.id, name: t.user.name })),
+      teachers: list.map((t) => ({
+        teacherId: t.id,
+        name: t.user.name,
+        photo: t.photoBase64,
+      })),
     });
   }
 
   const teachers = await prisma.teacher.findMany({
     where: { faceData: { not: null } },
-    select: { id: true, faceData: true, user: { select: { name: true } } },
+    select: {
+      id: true,
+      faceData: true,
+      photoBase64: true,
+      user: { select: { name: true } },
+    },
   });
 
   const candidates = teachers
@@ -32,7 +41,12 @@ export async function GET(request: Request) {
       } catch {
         descriptors = [];
       }
-      return { teacherId: t.id, name: t.user.name, descriptors };
+      return {
+        teacherId: t.id,
+        name: t.user.name,
+        photo: t.photoBase64,
+        descriptors,
+      };
     })
     .filter((c) => c.descriptors.length > 0);
 

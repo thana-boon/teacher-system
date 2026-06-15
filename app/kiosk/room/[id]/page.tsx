@@ -146,6 +146,12 @@ export default function KioskRoomPage({
                 <span className="text-4xl">📤</span>
                 เช็คชื่อออกจากห้อง
               </button>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => setScan("in")}
+              >
+                เป็นครูคาบถัดไป? เช็คชื่อเข้าสอน
+              </button>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4">

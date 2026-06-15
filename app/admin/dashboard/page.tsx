@@ -1,22 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatThaiDate, formatThaiTime, leaveTypeLabel } from "@/lib/constants";
+import { zonedDayRange } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
-function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-function endOfToday() {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d;
-}
-
 export default async function AdminDashboard() {
-  const today = { gte: startOfToday(), lte: endOfToday() };
+  const today = zonedDayRange();
 
   const [teacherCount, checkInsToday, pendingLeaves, leavesToday, recentPending, recentCheckIns] =
     await Promise.all([
@@ -45,6 +35,9 @@ export default async function AdminDashboard() {
           checkIn: true,
           checkOut: true,
           method: true,
+          status: true,
+          lateMinutes: true,
+          room: true,
           teacher: { select: { user: { select: { name: true } } } },
           schedule: { select: { room: true, subject: true } },
         },
@@ -121,11 +114,20 @@ export default async function AdminDashboard() {
                 {recentCheckIns.map((a) => (
                   <li key={a.id} className="flex items-center justify-between py-2">
                     <div>
-                      <div className="font-medium">{a.teacher.user.name}</div>
+                      <div className="flex items-center gap-2 font-medium">
+                        {a.teacher.user.name}
+                        {a.status === "late" ? (
+                          <span className="badge badge-error badge-sm">
+                            สาย {a.lateMinutes ?? 0} นาที
+                          </span>
+                        ) : a.status === "on_time" ? (
+                          <span className="badge badge-success badge-sm">ตรงเวลา</span>
+                        ) : null}
+                      </div>
                       <div className="text-sm text-base-content/60">
                         {a.schedule
                           ? `${a.schedule.room} · ${a.schedule.subject}`
-                          : "—"}
+                          : a.room ?? "—"}
                       </div>
                     </div>
                     <div className="text-right text-sm">

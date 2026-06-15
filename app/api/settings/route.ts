@@ -41,6 +41,7 @@ export async function PATCH(request: Request) {
     periods?: string;
     currentYear?: number;
     currentTerm?: number;
+    lateGraceMinutes?: number;
   } = {};
   if (typeof body.schoolName === "string" && body.schoolName.trim())
     data.schoolName = body.schoolName.trim();
@@ -53,6 +54,8 @@ export async function PATCH(request: Request) {
     data.currentYear = Number(body.currentYear);
   if ([1, 2].includes(Number(body.currentTerm)))
     data.currentTerm = Number(body.currentTerm);
+  if (body.lateGraceMinutes !== undefined && Number(body.lateGraceMinutes) >= 0)
+    data.lateGraceMinutes = Math.round(Number(body.lateGraceMinutes));
 
   await prisma.setting.upsert({
     where: { id: "default" },

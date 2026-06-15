@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [periods, setPeriods] = useState<PeriodSlot[]>([]);
   const [currentYear, setCurrentYear] = useState(2569);
   const [currentTerm, setCurrentTerm] = useState(1);
+  const [lateGrace, setLateGrace] = useState(5);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -24,6 +25,7 @@ export default function SettingsPage() {
         setPeriods(s.periods ?? []);
         setCurrentYear(s.currentYear ?? 2569);
         setCurrentTerm(s.currentTerm ?? 1);
+        setLateGrace(s.lateGraceMinutes ?? 5);
         setLoading(false);
       });
   }, []);
@@ -64,6 +66,7 @@ export default function SettingsPage() {
         periods,
         currentYear,
         currentTerm,
+        lateGraceMinutes: lateGrace,
       };
       if (logoChanged) payload.logoBase64 = logo;
       const res = await fetch("/api/settings", {
@@ -166,6 +169,19 @@ export default function SettingsPage() {
                 <option value={1}>ภาคเรียนที่ 1</option>
                 <option value={2}>ภาคเรียนที่ 2</option>
               </select>
+            </label>
+            <label className="form-control col-span-2 w-full">
+              <span className="label-text mb-1">อนุโลมเข้าสายได้ (นาที)</span>
+              <input
+                type="number"
+                min={0}
+                className="input input-bordered w-full"
+                value={lateGrace}
+                onChange={(e) => setLateGrace(Number(e.target.value))}
+              />
+              <span className="mt-1 text-xs text-base-content/50">
+                เช็คอินหลังเวลาเริ่มคาบเกินจำนวนนาทีนี้ = นับว่า “เข้าสาย”
+              </span>
             </label>
           </div>
         </div>
