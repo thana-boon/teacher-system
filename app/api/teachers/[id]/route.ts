@@ -95,6 +95,19 @@ export async function DELETE(
   }
 
   // Clean up dependent rows first (SQLite has no cascade here).
+  const [leaveIds, schedIds] = await Promise.all([
+    prisma.leave.findMany({ where: { teacherId: id }, select: { id: true } }),
+    prisma.schedule.findMany({ where: { teacherId: id }, select: { id: true } }),
+  ]);
+  await prisma.substitution.deleteMany({
+    where: {
+      OR: [
+        { leaveId: { in: leaveIds.map((l) => l.id) } },
+        { scheduleId: { in: schedIds.map((s) => s.id) } },
+        { substituteId: id },
+      ],
+    },
+  });
   await prisma.attendance.deleteMany({ where: { teacherId: id } });
   await prisma.leave.deleteMany({ where: { teacherId: id } });
   await prisma.schedule.deleteMany({ where: { teacherId: id } });

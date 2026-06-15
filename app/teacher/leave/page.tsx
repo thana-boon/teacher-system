@@ -3,13 +3,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { LEAVE_TYPES, LEAVE_STATUS, leaveTypeLabel, formatThaiDate } from "@/lib/constants";
 
+type Substitution = {
+  scheduleId: string;
+  period: number;
+  substituteName: string | null;
+};
 type Leave = {
   id: string;
   date: string;
   reason: string;
   type: string;
   status: string;
-  substituteName: string | null;
+  substitutions: Substitution[];
   createdAt: string;
 };
 
@@ -156,8 +161,15 @@ export default function TeacherLeavePage() {
                             {l.reason}
                           </td>
                           <td className="text-sm">
-                            {l.substituteName ? (
-                              <span className="badge badge-info badge-sm">{l.substituteName}</span>
+                            {l.substitutions.length ? (
+                              <div className="flex flex-col gap-0.5">
+                                {l.substitutions.map((s) => (
+                                  <span key={s.scheduleId}>
+                                    <span className="font-medium">คาบ {s.period}:</span>{" "}
+                                    {s.substituteName ?? "-"}
+                                  </span>
+                                ))}
+                              </div>
                             ) : (
                               <span className="text-base-content/30">-</span>
                             )}

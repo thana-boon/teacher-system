@@ -3,6 +3,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { LEAVE_STATUS, leaveTypeLabel, formatThaiDate, dayLabel } from "@/lib/constants";
 
+type Substitution = {
+  scheduleId: string;
+  period: number;
+  room: string;
+  subject: string;
+  substituteId: string;
+  substituteName: string | null;
+};
 type Leave = {
   id: string;
   teacherId: string;
@@ -11,8 +19,7 @@ type Leave = {
   reason: string;
   type: string;
   status: string;
-  substituteId: string | null;
-  substituteName: string | null;
+  substitutions: Substitution[];
   createdAt: string;
 };
 
@@ -50,7 +57,8 @@ export default function LeavesPage() {
   const [approving, setApproving] = useState<Leave | null>(null);
   const [dayClasses, setDayClasses] = useState<ScheduleRow[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
-  const [substituteId, setSubstituteId] = useState("");
+  // scheduleId -> substitute teacher id
+  const [subById, setSubById] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -76,8 +84,9 @@ export default function LeavesPage() {
 
   async function openApprove(l: Leave) {
     setApproving(l);
-    setSubstituteId("");
     setDayClasses([]);
+    // preselect existing substitutions if re-approving
+    setSubById(Object.fromEntries(l.substitutions.map((s) => [s.scheduleId, s.substituteId])));
     const dow = leaveDow(l.date);
     if (dow) {
       setLoadingClasses(true);
@@ -95,10 +104,13 @@ export default function LeavesPage() {
   async function confirmApprove() {
     if (!approving) return;
     setSaving(true);
+    const substitutions = dayClasses
+      .filter((c) => subById[c.id])
+      .map((c) => ({ scheduleId: c.id, substituteId: subById[c.id] }));
     const res = await fetch(`/api/leaves/${approving.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "approved", substituteId: substituteId || null }),
+      body: JSON.stringify({ status: "approved", substitutions }),
     });
     setSaving(false);
     if (res.ok) {
@@ -171,8 +183,15 @@ export default function LeavesPage() {
                           {l.reason}
                         </td>
                         <td className="text-sm">
-                          {l.substituteName ? (
-                            <span className="badge badge-info badge-sm">{l.substituteName}</span>
+                          {l.substitutions.length ? (
+                            <div className="flex flex-col gap-0.5">
+                              {l.substitutions.map((s) => (
+                                <span key={s.scheduleId}>
+                                  <span className="font-medium">คาบ {s.period}:</span>{" "}
+                                  {s.substituteName ?? "-"}
+                                </span>
+                              ))}
+                            </div>
                           ) : (
                             <span className="text-base-content/30">-</span>
                           )}
@@ -200,6 +219,13 @@ export default function LeavesPage() {
                                 ไม่อนุมัติ
                               </button>
                             </div>
+                          ) : l.status === "approved" ? (
+                            <button
+                              className="btn btn-ghost btn-xs"
+                              onClick={() => openApprove(l)}
+                            >
+                              ✏️ แก้สอนแทน
+                            </button>
                           ) : (
                             <span className="text-xs text-base-content/40">—</span>
                           )}
@@ -217,7 +243,7 @@ export default function LeavesPage() {
       {/* Approve modal */}
       {approving && (
         <dialog className="modal modal-open">
-          <div className="modal-box">
+          <div className="modal-box max-w-lg">
             <h3 className="text-lg font-bold">อนุมัติการลา</h3>
             <p className="text-sm text-base-content/70">
               {approving.teacherName} · {leaveTypeLabel(approving.type)} ·{" "}
@@ -225,47 +251,53 @@ export default function LeavesPage() {
             </p>
 
             <div className="mt-4">
-              <h4 className="mb-1 font-semibold">
-                คาบสอนในวัน{leaveDow(approving.date) ? dayLabel(leaveDow(approving.date)!) : "หยุด"} (ปี {term.year}/เทอม {term.term})
+              <h4 className="mb-2 font-semibold">
+                เลือกครูสอนแทนรายคาบ — วัน
+                {leaveDow(approving.date) ? dayLabel(leaveDow(approving.date)!) : "หยุด"} (ปี {term.year}/เทอม {term.term})
               </h4>
               {loadingClasses ? (
                 <span className="loading loading-spinner loading-sm" />
               ) : leaveDow(approving.date) === null ? (
                 <p className="text-sm text-base-content/50">วันนี้เป็นวันหยุด ไม่มีคาบสอน</p>
               ) : dayClasses.length === 0 ? (
-                <p className="text-sm text-base-content/50">ไม่มีคาบสอนในวันนี้ — ไม่ต้องหาครูสอนแทน</p>
+                <p className="text-sm text-base-content/50">
+                  ไม่มีคาบสอนในวันนี้ — ไม่ต้องหาครูสอนแทน
+                </p>
               ) : (
-                <ul className="rounded-box bg-base-200 p-3 text-sm">
+                <div className="space-y-2">
                   {dayClasses.map((c) => (
-                    <li key={c.id} className="flex justify-between py-0.5">
-                      <span>คาบ {c.period} · {c.room}</span>
-                      <span className="text-base-content/60">{c.subject}</span>
-                    </li>
+                    <div
+                      key={c.id}
+                      className="flex items-center gap-2 rounded-box bg-base-200 p-2"
+                    >
+                      <div className="w-28 shrink-0 text-sm">
+                        <div className="font-semibold">คาบ {c.period}</div>
+                        <div className="text-base-content/60">
+                          {c.room} · {c.subject}
+                        </div>
+                      </div>
+                      <select
+                        className="select select-bordered select-sm flex-1"
+                        value={subById[c.id] ?? ""}
+                        onChange={(e) =>
+                          setSubById((m) => ({ ...m, [c.id]: e.target.value }))
+                        }
+                      >
+                        <option value="">— ไม่มีครูสอนแทน —</option>
+                        {teachers
+                          .filter((t) => t.id !== approving.teacherId)
+                          .map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}
+                              {t.subject ? ` (${t.subject})` : ""}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
-
-            {leaveDow(approving.date) !== null && dayClasses.length > 0 && (
-              <label className="form-control mt-4 w-full">
-                <span className="label-text mb-1">ครูสอนแทน (ถ้ามี)</span>
-                <select
-                  className="select select-bordered w-full"
-                  value={substituteId}
-                  onChange={(e) => setSubstituteId(e.target.value)}
-                >
-                  <option value="">— ยังไม่ระบุ —</option>
-                  {teachers
-                    .filter((t) => t.id !== approving.teacherId)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                        {t.subject ? ` (${t.subject})` : ""}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            )}
 
             <div className="modal-action">
               <button className="btn btn-ghost" onClick={() => setApproving(null)} disabled={saving}>
@@ -273,7 +305,7 @@ export default function LeavesPage() {
               </button>
               <button className="btn btn-success" onClick={confirmApprove} disabled={saving}>
                 {saving && <span className="loading loading-spinner loading-sm" />}
-                ยืนยันอนุมัติ
+                {approving.status === "approved" ? "บันทึก" : "ยืนยันอนุมัติ"}
               </button>
             </div>
           </div>

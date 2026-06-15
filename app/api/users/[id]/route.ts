@@ -115,6 +115,19 @@ export async function DELETE(
   // Clean up teacher-owned rows first (SQLite, no cascade).
   if (user.teacher) {
     const tId = user.teacher.id;
+    const [leaveIds, schedIds] = await Promise.all([
+      prisma.leave.findMany({ where: { teacherId: tId }, select: { id: true } }),
+      prisma.schedule.findMany({ where: { teacherId: tId }, select: { id: true } }),
+    ]);
+    await prisma.substitution.deleteMany({
+      where: {
+        OR: [
+          { leaveId: { in: leaveIds.map((l) => l.id) } },
+          { scheduleId: { in: schedIds.map((s) => s.id) } },
+          { substituteId: tId },
+        ],
+      },
+    });
     await prisma.attendance.deleteMany({ where: { teacherId: tId } });
     await prisma.leave.deleteMany({ where: { teacherId: tId } });
     await prisma.schedule.deleteMany({ where: { teacherId: tId } });

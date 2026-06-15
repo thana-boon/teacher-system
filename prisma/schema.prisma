@@ -54,6 +54,7 @@ model Schedule {
   subject     String
   createdAt   DateTime     @default(now())
   attendances Attendance[]
+  substitutions Substitution[]
 }
 
 model Leave {
@@ -64,8 +65,20 @@ model Leave {
   reason        String
   type          String    // sick, personal, other
   status        String    @default("pending") // pending, approved, rejected
-  substituteId  String?
+  substituteId  String?   // deprecated: superseded by per-period Substitution[]
   createdAt     DateTime  @default(now())
+  substitutions Substitution[]
+}
+
+// One row per (leave, schedule/period) — who covers that specific period.
+model Substitution {
+  id           String   @id @default(cuid())
+  leaveId      String
+  leave        Leave    @relation(fields: [leaveId], references: [id])
+  scheduleId   String
+  schedule     Schedule @relation(fields: [scheduleId], references: [id])
+  substituteId String // Teacher id covering this period
+  createdAt    DateTime @default(now())
 }
 
 model Attendance {

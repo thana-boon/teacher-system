@@ -29,15 +29,23 @@ export async function GET(request: Request) {
       reason: true,
       type: true,
       status: true,
-      substituteId: true,
       createdAt: true,
       teacherId: true,
       teacher: { select: { user: { select: { name: true } } } },
+      substitutions: {
+        select: {
+          scheduleId: true,
+          substituteId: true,
+          schedule: { select: { period: true, room: true, subject: true } },
+        },
+      },
     },
   });
 
   // Resolve substitute teacher names (substituteId is a plain Teacher id).
-  const subIds = [...new Set(leaves.map((l) => l.substituteId).filter(Boolean) as string[])];
+  const subIds = [
+    ...new Set(leaves.flatMap((l) => l.substitutions.map((s) => s.substituteId))),
+  ];
   const subs = subIds.length
     ? await prisma.teacher.findMany({
         where: { id: { in: subIds } },
@@ -55,9 +63,17 @@ export async function GET(request: Request) {
       reason: l.reason,
       type: l.type,
       status: l.status,
-      substituteId: l.substituteId,
-      substituteName: l.substituteId ? subName.get(l.substituteId) ?? null : null,
       createdAt: l.createdAt,
+      substitutions: l.substitutions
+        .map((s) => ({
+          scheduleId: s.scheduleId,
+          period: s.schedule.period,
+          room: s.schedule.room,
+          subject: s.schedule.subject,
+          substituteId: s.substituteId,
+          substituteName: subName.get(s.substituteId) ?? null,
+        }))
+        .sort((a, b) => a.period - b.period),
     })),
   );
 }
