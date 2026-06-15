@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
+import { getSettings } from "@/lib/settings";
 
 const notoThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
@@ -8,10 +9,20 @@ const notoThai = Noto_Sans_Thai({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "ระบบบริหารการสอน 🦆",
-  description: "ระบบบริหารการสอนและการลาของครูโรงเรียน",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  // Use the uploaded school logo as the favicon; version param busts the cache
+  // whenever the logo (or any setting) changes.
+  const version = settings.updatedAt ? new Date(settings.updatedAt).getTime() : 0;
+  const iconUrl = settings.logoBase64 ? `/api/logo?v=${version}` : "/favicon.ico";
+  return {
+    title: settings.schoolName
+      ? `${settings.schoolName} 🦆`
+      : "ระบบบริหารการสอน 🦆",
+    description: "ระบบบริหารการสอนและการลาของครูโรงเรียน",
+    icons: { icon: iconUrl, shortcut: iconUrl, apple: iconUrl },
+  };
+}
 
 export default function RootLayout({
   children,

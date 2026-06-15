@@ -13,6 +13,7 @@ export type SiteSettings = {
   termStart: string | null; // "YYYY-MM-DD"
   termEnd: string | null;
   holidays: { date: string; name: string }[];
+  updatedAt: Date | null;
 };
 
 export const DEFAULT_SCHOOL_NAME = "โรงเรียนตัวอย่าง";
@@ -65,5 +66,6 @@ export async function getSettings(): Promise<SiteSettings> {
     termStart: row?.termStart ?? null,
     termEnd: row?.termEnd ?? null,
     holidays: parseHolidays(row?.holidays),
+    updatedAt: row?.updatedAt ?? null,
   };
 }
