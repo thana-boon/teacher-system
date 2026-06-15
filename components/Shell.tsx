@@ -57,7 +57,7 @@ export default function Shell({
       <input id="app-drawer" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content flex min-h-screen flex-col">
         {/* Top navbar */}
-        <header className="navbar sticky top-0 z-30 bg-primary text-primary-content shadow">
+        <header className="navbar sticky top-0 z-30 bg-primary text-primary-content shadow print:hidden">
           <div className="flex-none lg:hidden">
             <label
               htmlFor="app-drawer"
@@ -128,7 +128,7 @@ export default function Shell({
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>
 
-      <div className="drawer-side z-40">
+      <div className="drawer-side z-40 print:hidden">
         <label
           htmlFor="app-drawer"
           aria-label="ปิดเมนู"

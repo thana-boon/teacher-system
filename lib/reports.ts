@@ -1,6 +1,13 @@
 import "server-only";
 import { prisma } from "./prisma";
-import { zonedMonthRange } from "./time";
+import { getSettings } from "./settings";
+import {
+  zonedMonthRange,
+  zonedDayRange,
+  zonedWeekday,
+  zonedYMD,
+} from "./time";
+import type { PeriodSlot } from "./constants";
 
 export type ReportRow = {
   teacherId: string;
@@ -91,4 +98,254 @@ export async function getMonthlyReport(month: string): Promise<MonthlyReport> {
   );
 
   return { month, rows, totals };
+}
+
+// ---------------------------------------------------------------------------
+// Daily attendance grid: room x period, each cell = scheduled teacher + status
+// ---------------------------------------------------------------------------
+
+export type DailyCellStatus = "present" | "late" | "absent" | "leave";
+export type DailyCell = {
+  room: string;
+  period: number;
+  teacherName: string;
+  subject: string;
+  status: DailyCellStatus;
+  checkIn: Date | null;
+  checkOut: Date | null;
+  lateMinutes: number | null;
+};
+export type DailyReport = {
+  date: string;
+  weekday: number | null;
+  periods: PeriodSlot[];
+  rooms: string[];
+  cells: DailyCell[];
+};
+
+export async function getDailyReport(date: string): Promise<DailyReport> {
+  const settings = await getSettings();
+  // Anchor at mid-day Bangkok so the weekday/day range are unambiguous.
+  const anchor = new Date(`${date}T06:00:00.000Z`);
+  const weekday = zonedWeekday(anchor);
+  const { gte, lte } = zonedDayRange(anchor);
+
+  if (!weekday) {
+    return { date, weekday: null, periods: settings.periods, rooms: [], cells: [] };
+  }
+
+  const [schedules, attendances, leaves] = await Promise.all([
+    prisma.schedule.findMany({
+      where: {
+        dayOfWeek: weekday,
+        year: settings.currentYear,
+        term: settings.currentTerm,
+      },
+      select: {
+        id: true,
+        room: true,
+        period: true,
+        subject: true,
+        teacherId: true,
+        teacher: { select: { user: { select: { name: true } } } },
+      },
+    }),
+    prisma.attendance.findMany({
+      where: { checkIn: { gte, lte } },
+      select: {
+        scheduleId: true,
+        checkIn: true,
+        checkOut: true,
+        status: true,
+        lateMinutes: true,
+      },
+    }),
+    prisma.leave.findMany({
+      where: { status: "approved", date: { gte, lte } },
+      select: { teacherId: true },
+    }),
+  ]);
+
+  const attBySchedule = new Map(
+    attendances.filter((a) => a.scheduleId).map((a) => [a.scheduleId!, a]),
+  );
+  const onLeave = new Set(leaves.map((l) => l.teacherId));
+
+  const cells: DailyCell[] = schedules.map((s) => {
+    const att = attBySchedule.get(s.id);
+    let status: DailyCellStatus;
+    if (att) status = att.status === "late" ? "late" : "present";
+    else if (onLeave.has(s.teacherId)) status = "leave";
+    else status = "absent";
+    return {
+      room: s.room,
+      period: s.period,
+      teacherName: s.teacher.user.name,
+      subject: s.subject,
+      status,
+      checkIn: att?.checkIn ?? null,
+      checkOut: att?.checkOut ?? null,
+      lateMinutes: att?.lateMinutes ?? null,
+    };
+  });
+
+  const rooms = [...new Set(schedules.map((s) => s.room))].sort();
+  return { date, weekday, periods: settings.periods, rooms, cells };
+}
+
+// ---------------------------------------------------------------------------
+// Per-teacher monthly report incl. absences (scheduled period with no check-in)
+// ---------------------------------------------------------------------------
+
+export type AbsenceItem = { date: string; period: number; room: string; subject: string };
+export type TeacherReport = {
+  teacherId: string;
+  name: string;
+  month: string;
+  expected: number; // scheduled period-instances
+  present: number;
+  onTime: number;
+  late: number;
+  lateMinutes: number;
+  earlyLeave: number;
+  onLeave: number; // scheduled periods skipped due to approved leave
+  absent: number; // scheduled periods with no check-in and no leave
+  absences: AbsenceItem[];
+};
+
+export async function getTeacherReport(
+  teacherId: string,
+  month: string,
+): Promise<TeacherReport | null> {
+  const settings = await getSettings();
+  const { gte, lt } = zonedMonthRange(month);
+
+  const teacher = await prisma.teacher.findUnique({
+    where: { id: teacherId },
+    select: { id: true, user: { select: { name: true } } },
+  });
+  if (!teacher) return null;
+
+  const [schedules, attendances, leaves] = await Promise.all([
+    prisma.schedule.findMany({
+      where: { teacherId, year: settings.currentYear, term: settings.currentTerm },
+      select: { id: true, dayOfWeek: true, period: true, room: true, subject: true },
+    }),
+    prisma.attendance.findMany({
+      where: { teacherId, checkIn: { gte, lt } },
+      select: {
+        scheduleId: true,
+        checkIn: true,
+        status: true,
+        lateMinutes: true,
+        earlyMinutes: true,
+      },
+    }),
+    prisma.leave.findMany({
+      where: { teacherId, status: "approved", date: { gte, lt } },
+      select: { date: true },
+    }),
+  ]);
+
+  // attendance keyed by scheduleId + local date
+  const attByKey = new Map(
+    attendances
+      .filter((a) => a.scheduleId)
+      .map((a) => [`${a.scheduleId}|${zonedYMD(a.checkIn!)}`, a]),
+  );
+  const leaveDays = new Set(leaves.map((l) => zonedYMD(l.date)));
+  const byDow = new Map<number, typeof schedules>();
+  for (const s of schedules) {
+    if (!byDow.has(s.dayOfWeek)) byDow.set(s.dayOfWeek, []);
+    byDow.get(s.dayOfWeek)!.push(s);
+  }
+
+  const r: TeacherReport = {
+    teacherId: teacher.id,
+    name: teacher.user.name,
+    month,
+    expected: 0,
+    present: 0,
+    onTime: 0,
+    late: 0,
+    lateMinutes: 0,
+    earlyLeave: 0,
+    onLeave: 0,
+    absent: 0,
+    absences: [],
+  };
+
+  // Iterate each calendar day in the month.
+  const start = new Date(gte);
+  for (let d = new Date(start); d < lt; d.setUTCDate(d.getUTCDate() + 1)) {
+    const ymd = zonedYMD(d);
+    const dow = zonedWeekday(d);
+    if (!dow) continue;
+    const daySchedules = byDow.get(dow) ?? [];
+    for (const s of daySchedules) {
+      r.expected++;
+      const att = attByKey.get(`${s.id}|${ymd}`);
+      if (att) {
+        r.present++;
+        if (att.status === "late") {
+          r.late++;
+          r.lateMinutes += att.lateMinutes ?? 0;
+        } else if (att.status === "on_time") {
+          r.onTime++;
+        }
+        if ((att.earlyMinutes ?? 0) > 0) r.earlyLeave++;
+      } else if (leaveDays.has(ymd)) {
+        r.onLeave++;
+      } else {
+        r.absent++;
+        r.absences.push({ date: ymd, period: s.period, room: s.room, subject: s.subject });
+      }
+    }
+  }
+
+  return r;
+}
+
+// ---------------------------------------------------------------------------
+// Leave report for a month
+// ---------------------------------------------------------------------------
+
+export type LeaveReportItem = {
+  id: string;
+  teacherName: string;
+  date: Date;
+  type: string;
+  status: string;
+  substituteCount: number;
+};
+export type LeaveReport = {
+  month: string;
+  items: LeaveReportItem[];
+};
+
+export async function getLeaveReport(month: string): Promise<LeaveReport> {
+  const { gte, lt } = zonedMonthRange(month);
+  const leaves = await prisma.leave.findMany({
+    where: { date: { gte, lt } },
+    orderBy: { date: "asc" },
+    select: {
+      id: true,
+      date: true,
+      type: true,
+      status: true,
+      teacher: { select: { user: { select: { name: true } } } },
+      _count: { select: { substitutions: true } },
+    },
+  });
+  return {
+    month,
+    items: leaves.map((l) => ({
+      id: l.id,
+      teacherName: l.teacher.user.name,
+      date: l.date,
+      type: l.type,
+      status: l.status,
+      substituteCount: l._count.substitutions,
+    })),
+  };
 }

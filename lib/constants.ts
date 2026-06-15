@@ -12,6 +12,26 @@ export function dayLabel(day: number): string {
   return DAYS.find((d) => d.value === day)?.label ?? "-";
 }
 
+export const THAI_MONTHS = [
+  "มกราคม",
+  "กุมภาพันธ์",
+  "มีนาคม",
+  "เมษายน",
+  "พฤษภาคม",
+  "มิถุนายน",
+  "กรกฎาคม",
+  "สิงหาคม",
+  "กันยายน",
+  "ตุลาคม",
+  "พฤศจิกายน",
+  "ธันวาคม",
+] as const;
+
+/** Gregorian year -> Thai Buddhist year (พ.ศ.). */
+export const toBE = (gregYear: number) => gregYear + 543;
+/** Thai Buddhist year -> Gregorian year. */
+export const toCE = (beYear: number) => beYear - 543;
+
 // A teaching period and its time window. The actual list is configurable per
 // site (see lib/settings.ts / the admin settings page); this is the fallback.
 export type PeriodSlot = { period: number; start: string; end: string };

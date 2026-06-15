@@ -2,6 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { LEAVE_TYPES, LEAVE_STATUS, leaveTypeLabel, formatThaiDate } from "@/lib/constants";
+import ThaiDatePicker from "@/components/ThaiDatePicker";
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 type Substitution = {
   scheduleId: string;
@@ -21,7 +27,7 @@ type Leave = {
 export default function TeacherLeavePage() {
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(todayStr());
   const [type, setType] = useState("sick");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -53,7 +59,7 @@ export default function TeacherLeavePage() {
         setError(data.error ?? "ส่งคำขอไม่สำเร็จ");
         return;
       }
-      setDate("");
+      setDate(todayStr());
       setReason("");
       setType("sick");
       await load();
@@ -81,13 +87,7 @@ export default function TeacherLeavePage() {
             <form onSubmit={submit} className="space-y-3">
               <label className="form-control w-full">
                 <span className="label-text mb-1">วันที่ลา</span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                />
+                <ThaiDatePicker value={date} onChange={setDate} />
               </label>
               <label className="form-control w-full">
                 <span className="label-text mb-1">ประเภทการลา</span>
