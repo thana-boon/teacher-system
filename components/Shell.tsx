@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import IdleLogout from "./IdleLogout";
 
 export type NavItem = { href: string; label: string; icon: string };
 
@@ -54,6 +55,7 @@ export default function Shell({
 
   return (
     <div className="drawer lg:drawer-open">
+      <IdleLogout />
       <input id="app-drawer" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content flex min-h-screen flex-col">
         {/* Top navbar */}
