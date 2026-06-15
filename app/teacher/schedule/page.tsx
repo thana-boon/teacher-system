@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionWithRole } from "@/lib/auth";
-import { DAYS, PERIODS } from "@/lib/constants";
+import { DAYS, periodTime } from "@/lib/constants";
+import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +10,14 @@ export default async function TeacherSchedule() {
   const session = await getSessionWithRole("teacher");
   if (!session?.teacherId) redirect("/login");
 
-  const schedules = await prisma.schedule.findMany({
-    where: { teacherId: session.teacherId },
-    select: { dayOfWeek: true, period: true, room: true, subject: true },
-  });
+  const [schedules, settings] = await Promise.all([
+    prisma.schedule.findMany({
+      where: { teacherId: session.teacherId },
+      select: { dayOfWeek: true, period: true, room: true, subject: true },
+    }),
+    getSettings(),
+  ]);
+  const periods = settings.periods;
 
   const at = (day: number, period: number) =>
     schedules.find((s) => s.dayOfWeek === day && s.period === period);
@@ -36,16 +41,16 @@ export default async function TeacherSchedule() {
                 </tr>
               </thead>
               <tbody>
-                {PERIODS.map((p) => (
-                  <tr key={p.value}>
+                {periods.map((p) => (
+                  <tr key={p.period}>
                     <td className="bg-base-200 text-xs font-semibold">
-                      <div>คาบ {p.value}</div>
+                      <div>คาบ {p.period}</div>
                       <div className="font-normal text-base-content/50">
-                        {p.time}
+                        {periodTime(p)}
                       </div>
                     </td>
                     {DAYS.map((d) => {
-                      const c = at(d.value, p.value);
+                      const c = at(d.value, p.period);
                       return (
                         <td key={d.value} className="p-1">
                           {c ? (

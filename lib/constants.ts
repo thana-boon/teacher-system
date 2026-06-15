@@ -12,17 +12,24 @@ export function dayLabel(day: number): string {
   return DAYS.find((d) => d.value === day)?.label ?? "-";
 }
 
-// 8 teaching periods, with start times (for kiosk "current period" display).
-export const PERIODS = [
-  { value: 1, time: "08:30 - 09:20" },
-  { value: 2, time: "09:20 - 10:10" },
-  { value: 3, time: "10:10 - 11:00" },
-  { value: 4, time: "11:00 - 11:50" },
-  { value: 5, time: "12:50 - 13:40" },
-  { value: 6, time: "13:40 - 14:30" },
-  { value: 7, time: "14:30 - 15:20" },
-  { value: 8, time: "15:20 - 16:10" },
-] as const;
+// A teaching period and its time window. The actual list is configurable per
+// site (see lib/settings.ts / the admin settings page); this is the fallback.
+export type PeriodSlot = { period: number; start: string; end: string };
+
+export const DEFAULT_PERIODS: PeriodSlot[] = [
+  { period: 1, start: "08:30", end: "09:20" },
+  { period: 2, start: "09:20", end: "10:10" },
+  { period: 3, start: "10:10", end: "11:00" },
+  { period: 4, start: "11:00", end: "11:50" },
+  { period: 5, start: "12:50", end: "13:40" },
+  { period: 6, start: "13:40", end: "14:30" },
+  { period: 7, start: "14:30", end: "15:20" },
+  { period: 8, start: "15:20", end: "16:10" },
+];
+
+export function periodTime(p: PeriodSlot): string {
+  return `${p.start} - ${p.end}`;
+}
 
 export const LEAVE_TYPES = [
   { value: "sick", label: "ลาป่วย" },

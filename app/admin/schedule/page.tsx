@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { DAYS, PERIODS } from "@/lib/constants";
+import { DAYS, DEFAULT_PERIODS, periodTime, type PeriodSlot } from "@/lib/constants";
 
 type Teacher = { id: string; name: string; subject: string | null };
 type Schedule = {
@@ -24,6 +24,7 @@ export default function SchedulePage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teacherId, setTeacherId] = useState("");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [periods, setPeriods] = useState<PeriodSlot[]>(DEFAULT_PERIODS);
   const [loading, setLoading] = useState(false);
   const [cell, setCell] = useState<CellForm | null>(null);
   const [saving, setSaving] = useState(false);
@@ -34,6 +35,11 @@ export default function SchedulePage() {
       .then((list: Teacher[]) => {
         setTeachers(list);
         if (list.length) setTeacherId(list[0].id);
+      });
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s: { periods?: PeriodSlot[] }) => {
+        if (s.periods?.length) setPeriods(s.periods);
       });
   }, []);
 
@@ -148,21 +154,21 @@ export default function SchedulePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {PERIODS.map((p) => (
-                    <tr key={p.value}>
+                  {periods.map((p) => (
+                    <tr key={p.period}>
                       <td className="bg-base-200 text-xs font-semibold">
-                        <div>คาบ {p.value}</div>
-                        <div className="font-normal text-base-content/50">{p.time}</div>
+                        <div>คาบ {p.period}</div>
+                        <div className="font-normal text-base-content/50">{periodTime(p)}</div>
                       </td>
                       {DAYS.map((d) => {
-                        const c = cellAt(d.value, p.value);
+                        const c = cellAt(d.value, p.period);
                         return (
                           <td key={d.value} className="p-1">
                             <button
                               className={`btn btn-block btn-sm h-auto min-h-12 flex-col py-1 ${
                                 c ? "btn-primary" : "btn-ghost border border-dashed border-base-300"
                               }`}
-                              onClick={() => openCell(d.value, p.value)}
+                              onClick={() => openCell(d.value, p.period)}
                             >
                               {c ? (
                                 <>

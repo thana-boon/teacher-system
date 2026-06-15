@@ -6,6 +6,15 @@ datasource db {
   provider = "sqlite"
 }
 
+// Singleton row (id = "default") holding site-wide configuration.
+model Setting {
+  id         String   @id @default("default")
+  schoolName String   @default("โรงเรียนตัวอย่าง")
+  logoBase64 String? // data URL of the school logo
+  periods    String? // JSON: [{ "period":1, "start":"08:30", "end":"09:20" }, ...]
+  updatedAt  DateTime @updatedAt
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String

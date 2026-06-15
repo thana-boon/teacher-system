@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const HOME: Record<string, string> = {
@@ -24,6 +24,19 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [school, setSchool] = useState<{ schoolName: string; logoBase64: string | null }>({
+    schoolName: "",
+    logoBase64: null,
+  });
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s) =>
+        setSchool({ schoolName: s.schoolName ?? "", logoBase64: s.logoBase64 ?? null }),
+      )
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,7 +68,19 @@ function LoginForm() {
       <div className="card w-full max-w-md bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="mb-2 text-center">
-            <h1 className="text-3xl font-bold">ระบบบริหารการสอน 🦆</h1>
+            {school.logoBase64 ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={school.logoBase64}
+                alt="โลโก้โรงเรียน"
+                className="mx-auto mb-2 h-16 w-16 object-contain"
+              />
+            ) : (
+              <div className="mb-1 text-5xl">🦆</div>
+            )}
+            <h1 className="text-2xl font-bold">
+              {school.schoolName || "ระบบบริหารการสอน"}
+            </h1>
             <p className="mt-1 text-base-content/60">เข้าสู่ระบบเพื่อใช้งาน</p>
           </div>
 

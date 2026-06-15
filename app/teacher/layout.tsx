@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionWithRole } from "@/lib/auth";
+import { getSettings } from "@/lib/settings";
 import Shell, { type NavItem } from "@/components/Shell";
 
 const NAV: NavItem[] = [
@@ -16,9 +17,16 @@ export default async function TeacherLayout({
 }) {
   const session = await getSessionWithRole("teacher");
   if (!session) redirect("/login");
+  const settings = await getSettings();
 
   return (
-    <Shell nav={NAV} userName={session.name} roleLabel="ครู">
+    <Shell
+      nav={NAV}
+      userName={session.name}
+      roleLabel="ครู"
+      schoolName={settings.schoolName}
+      logoBase64={settings.logoBase64}
+    >
       {children}
     </Shell>
   );

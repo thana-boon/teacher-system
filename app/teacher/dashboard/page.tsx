@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { getSessionWithRole } from "@/lib/auth";
 import {
   DAYS,
-  PERIODS,
+  periodTime,
   formatThaiDate,
   formatThaiTime,
 } from "@/lib/constants";
+import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function TeacherDashboard() {
   const today = todayRange();
   const week = weekRange();
 
-  const [todaySchedules, todayAttendance, weekCheckIns, pendingLeaves] =
+  const [todaySchedules, todayAttendance, weekCheckIns, pendingLeaves, settings] =
     await Promise.all([
       todayDow
         ? prisma.schedule.findMany({
@@ -59,6 +60,7 @@ export default async function TeacherDashboard() {
       prisma.leave.count({
         where: { teacherId: session.teacherId, status: "pending" },
       }),
+      getSettings(),
     ]);
 
   const attBySchedule = new Map(
@@ -123,7 +125,7 @@ export default async function TeacherDashboard() {
             <ul className="divide-y divide-base-200">
               {todaySchedules.map((s) => {
                 const att = attBySchedule.get(s.id);
-                const period = PERIODS.find((p) => p.value === s.period);
+                const period = settings.periods.find((p) => p.period === s.period);
                 return (
                   <li
                     key={s.id}
@@ -141,7 +143,7 @@ export default async function TeacherDashboard() {
                           {s.subject} · {s.room}
                         </div>
                         <div className="text-sm text-base-content/60">
-                          {period?.time}
+                          {period ? periodTime(period) : ""}
                         </div>
                       </div>
                     </div>

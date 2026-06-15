@@ -10,11 +10,15 @@ export default function Shell({
   nav,
   userName,
   roleLabel,
+  schoolName,
+  logoBase64,
   children,
 }: {
   nav: NavItem[];
   userName: string;
   roleLabel: string;
+  schoolName: string;
+  logoBase64: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -76,8 +80,18 @@ export default function Shell({
               </svg>
             </label>
           </div>
-          <div className="flex-1">
-            <span className="px-2 text-xl font-bold">ระบบบริหารการสอน 🦆</span>
+          <div className="flex flex-1 items-center gap-2 px-2">
+            {logoBase64 ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoBase64}
+                alt="โลโก้"
+                className="h-9 w-9 rounded bg-base-100 object-contain p-0.5"
+              />
+            ) : (
+              <span className="text-2xl">🦆</span>
+            )}
+            <span className="text-lg font-bold leading-tight">{schoolName}</span>
           </div>
           <div className="flex-none">
             <div className="dropdown dropdown-end">
