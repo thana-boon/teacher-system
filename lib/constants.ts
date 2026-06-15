@@ -31,6 +31,26 @@ export function periodTime(p: PeriodSlot): string {
   return `${p.start} - ${p.end}`;
 }
 
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/** The period whose time window contains `date` (local time), or null. */
+export function currentPeriod(
+  periods: PeriodSlot[],
+  date: Date = new Date(),
+): PeriodSlot | null {
+  const now = date.getHours() * 60 + date.getMinutes();
+  return periods.find((p) => now >= toMinutes(p.start) && now <= toMinutes(p.end)) ?? null;
+}
+
+/** JS getDay() (0=Sun..6=Sat) -> our dayOfWeek (1..5 = Mon..Fri), else null. */
+export function weekdayOf(date: Date = new Date()): number | null {
+  const d = date.getDay();
+  return d >= 1 && d <= 5 ? d : null;
+}
+
 export const LEAVE_TYPES = [
   { value: "sick", label: "ลาป่วย" },
   { value: "personal", label: "ลากิจ" },

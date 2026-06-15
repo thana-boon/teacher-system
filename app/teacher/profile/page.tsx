@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import FaceEnrollModal from "@/components/FaceEnrollModal";
 
 type Profile = {
   name: string;
@@ -24,6 +25,7 @@ export default function ProfilePage() {
   const [photo, setPhoto] = useState<string | null>(null); // current preview / data url
   const [photoChanged, setPhotoChanged] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
@@ -111,13 +113,25 @@ export default function ProfilePage() {
                 className="file-input file-input-bordered file-input-sm w-full max-w-xs"
                 onChange={onPickPhoto}
               />
-              <div className="text-xs">
-                สถานะข้อมูลใบหน้า:{" "}
-                {hasFace ? (
-                  <span className="badge badge-success badge-sm">เก็บแล้ว</span>
-                ) : (
-                  <span className="badge badge-ghost badge-sm">ยังไม่ได้เก็บ</span>
-                )}
+              <div className="flex flex-col items-center gap-1 text-xs">
+                <div>
+                  สถานะข้อมูลใบหน้า:{" "}
+                  {hasFace ? (
+                    <span className="badge badge-success badge-sm">เก็บแล้ว</span>
+                  ) : (
+                    <span className="badge badge-ghost badge-sm">ยังไม่ได้เก็บ</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-xs"
+                  onClick={() => setEnrolling(true)}
+                >
+                  📸 {hasFace ? "เก็บใบหน้าใหม่" : "เก็บข้อมูลใบหน้า"}
+                </button>
+                <span className="text-base-content/50">
+                  ใช้สำหรับสแกนเช็คชื่อที่หน้า Kiosk
+                </span>
               </div>
             </div>
 
@@ -190,6 +204,16 @@ export default function ProfilePage() {
           </form>
         </div>
       </div>
+
+      {enrolling && (
+        <FaceEnrollModal
+          onClose={() => setEnrolling(false)}
+          onSaved={() => {
+            setHasFace(true);
+            setMsg({ type: "success", text: "เก็บข้อมูลใบหน้าเรียบร้อย" });
+          }}
+        />
+      )}
     </div>
   );
 }
