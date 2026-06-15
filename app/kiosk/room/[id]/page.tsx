@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import KioskScanModal from "@/components/KioskScanModal";
 import {
@@ -32,6 +32,18 @@ export default function KioskRoomPage({
   const [now, setNow] = useState(() => new Date());
   const [settings, setSettings] = useState<Settings | null>(null);
   const [scan, setScan] = useState<null | "in" | "out">(null);
+  const [status, setStatus] = useState<{
+    occupied: boolean;
+    teacherName?: string;
+    checkIn?: string;
+  } | null>(null);
+
+  const refreshStatus = useCallback(() => {
+    fetch(`/api/kiosk/room-status?room=${encodeURIComponent(room)}`)
+      .then((r) => r.json())
+      .then(setStatus)
+      .catch(() => {});
+  }, [room]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -43,6 +55,12 @@ export default function KioskRoomPage({
       .then((r) => r.json())
       .then(setSettings);
   }, []);
+
+  useEffect(() => {
+    refreshStatus();
+    const t = setInterval(refreshStatus, 20000); // keep in sync with other devices
+    return () => clearInterval(t);
+  }, [refreshStatus]);
 
   function changeRoom() {
     localStorage.removeItem(ROOM_KEY);
@@ -100,22 +118,47 @@ export default function KioskRoomPage({
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
-          <button
-            className="btn btn-success h-28 flex-col text-2xl"
-            onClick={() => setScan("in")}
-          >
-            <span className="text-4xl">📥</span>
-            เช็คชื่อเข้าสอน
-          </button>
-          <button
-            className="btn btn-warning h-28 flex-col text-2xl"
-            onClick={() => setScan("out")}
-          >
-            <span className="text-4xl">📤</span>
-            เช็คชื่อออกจากห้อง
-          </button>
+        {/* State-driven action: a room holds one check-in at a time */}
+        <div className="w-full max-w-xl">
+          {status === null ? (
+            <div className="text-center text-base-content/50">
+              <span className="loading loading-spinner loading-md" />
+            </div>
+          ) : status.occupied ? (
+            <div className="flex flex-col items-center gap-4">
+              <div className="alert alert-success justify-center text-lg">
+                🟢 {status.teacherName} กำลังสอนอยู่
+                {status.checkIn && (
+                  <span className="text-base">
+                    (เข้าเมื่อ{" "}
+                    {new Date(status.checkIn).toLocaleTimeString("th-TH", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    )
+                  </span>
+                )}
+              </div>
+              <button
+                className="btn btn-warning h-28 w-full max-w-md flex-col text-2xl"
+                onClick={() => setScan("out")}
+              >
+                <span className="text-4xl">📤</span>
+                เช็คชื่อออกจากห้อง
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <div className="text-base-content/50">ห้องว่าง — พร้อมเช็คชื่อเข้าสอน</div>
+              <button
+                className="btn btn-success h-28 w-full max-w-md flex-col text-2xl"
+                onClick={() => setScan("in")}
+              >
+                <span className="text-4xl">📥</span>
+                เช็คชื่อเข้าสอน
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="text-sm text-base-content/50">
@@ -124,7 +167,14 @@ export default function KioskRoomPage({
       </main>
 
       {scan && (
-        <KioskScanModal room={room} type={scan} onClose={() => setScan(null)} />
+        <KioskScanModal
+          room={room}
+          type={scan}
+          onClose={() => {
+            setScan(null);
+            refreshStatus();
+          }}
+        />
       )}
     </div>
   );

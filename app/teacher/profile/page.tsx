@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const [photo, setPhoto] = useState<string | null>(null); // current preview / data url
   const [photoChanged, setPhotoChanged] = useState(false);
   const [pendingFace, setPendingFace] = useState<string | null>(null); // JSON faceData from uploaded photo
+  const [clearFace, setClearFace] = useState(false); // request removal of stored face data
   const [faceMsg, setFaceMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
@@ -79,6 +80,7 @@ export default function ProfilePage() {
       if (password) payload.password = password;
       if (photoChanged) payload.photoBase64 = photo;
       if (pendingFace) payload.faceData = pendingFace;
+      else if (clearFace) payload.faceData = "";
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -94,6 +96,11 @@ export default function ProfilePage() {
       if (pendingFace) {
         setHasFace(true);
         setPendingFace(null);
+        setFaceMsg("");
+      }
+      if (clearFace) {
+        setHasFace(false);
+        setClearFace(false);
         setFaceMsg("");
       }
       setMsg({ type: "success", text: "บันทึกข้อมูลเรียบร้อย" });
@@ -135,6 +142,20 @@ export default function ProfilePage() {
                 className="file-input file-input-bordered file-input-sm w-full max-w-xs"
                 onChange={onPickPhoto}
               />
+              {photo && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs text-error"
+                  onClick={() => {
+                    setPhoto(null);
+                    setPhotoChanged(true);
+                    setPendingFace(null);
+                    setFaceMsg("");
+                  }}
+                >
+                  🗑️ ลบรูป
+                </button>
+              )}
               <div className="flex flex-col items-center gap-1 text-xs">
                 <div>
                   สถานะข้อมูลใบหน้า:{" "}
@@ -156,6 +177,19 @@ export default function ProfilePage() {
                 >
                   📸 สแกนสดจากกล้อง
                 </button>
+                {hasFace && !clearFace && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs text-error"
+                    onClick={() => {
+                      setClearFace(true);
+                      setPendingFace(null);
+                      setFaceMsg("จะลบข้อมูลใบหน้าเมื่อกดบันทึก");
+                    }}
+                  >
+                    🗑️ ลบข้อมูลใบหน้า
+                  </button>
+                )}
                 <span className="text-base-content/50">
                   ใช้สำหรับสแกนเช็คชื่อที่หน้า Kiosk
                 </span>

@@ -271,6 +271,33 @@ export default function TeachersPage() {
                   {faceStatus && (
                     <p className="mt-1 text-xs text-base-content/70">{faceStatus}</p>
                   )}
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {form.photoPreview && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs text-error"
+                        onClick={() =>
+                          setForm((f) =>
+                            f ? { ...f, photoBase64: "", photoPreview: null } : f,
+                          )
+                        }
+                      >
+                        🗑️ ลบรูป
+                      </button>
+                    )}
+                    {form.id && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs text-error"
+                        onClick={() => {
+                          setForm((f) => (f ? { ...f, faceData: "" } : f));
+                          setFaceStatus("จะลบข้อมูลใบหน้าเมื่อกดบันทึก");
+                        }}
+                      >
+                        🗑️ ลบข้อมูลใบหน้า
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 

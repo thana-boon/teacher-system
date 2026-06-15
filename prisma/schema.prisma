@@ -87,6 +87,7 @@ model Attendance {
   teacher     Teacher   @relation(fields: [teacherId], references: [id])
   scheduleId  String?
   schedule    Schedule? @relation(fields: [scheduleId], references: [id])
+  room        String? // room where the check-in happened (for per-room status)
   checkIn     DateTime?
   checkOut    DateTime?
   method      String    @default("face") // face, manual
