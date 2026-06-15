@@ -25,6 +25,8 @@ export default function SchedulePage() {
   const [teacherId, setTeacherId] = useState("");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [periods, setPeriods] = useState<PeriodSlot[]>(DEFAULT_PERIODS);
+  const [year, setYear] = useState(2569);
+  const [term, setTerm] = useState(1);
   const [loading, setLoading] = useState(false);
   const [cell, setCell] = useState<CellForm | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,18 +40,22 @@ export default function SchedulePage() {
       });
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((s: { periods?: PeriodSlot[] }) => {
+      .then((s: { periods?: PeriodSlot[]; currentYear?: number; currentTerm?: number }) => {
         if (s.periods?.length) setPeriods(s.periods);
+        if (s.currentYear) setYear(s.currentYear);
+        if (s.currentTerm) setTerm(s.currentTerm);
       });
   }, []);
 
   const loadSchedules = useCallback(async () => {
     if (!teacherId) return;
     setLoading(true);
-    const res = await fetch(`/api/schedules?teacherId=${teacherId}`);
+    const res = await fetch(
+      `/api/schedules?teacherId=${teacherId}&year=${year}&term=${term}`,
+    );
     if (res.ok) setSchedules(await res.json());
     setLoading(false);
-  }, [teacherId]);
+  }, [teacherId, year, term]);
 
   useEffect(() => {
     loadSchedules();
@@ -88,6 +94,8 @@ export default function SchedulePage() {
             period: cell.period,
             room: cell.room,
             subject: cell.subject,
+            year,
+            term,
           }),
         },
       );
@@ -120,18 +128,43 @@ export default function SchedulePage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">ตารางสอน</h1>
-        <select
-          className="select select-bordered select-sm"
-          value={teacherId}
-          onChange={(e) => setTeacherId(e.target.value)}
-        >
-          {teachers.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-              {t.subject ? ` (${t.subject})` : ""}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="select select-bordered select-sm"
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            title="ปีการศึกษา"
+          >
+            {[year - 1, year, year + 1]
+              .filter((v, i, a) => a.indexOf(v) === i)
+              .map((y) => (
+                <option key={y} value={y}>
+                  ปีการศึกษา {y}
+                </option>
+              ))}
+          </select>
+          <select
+            className="select select-bordered select-sm"
+            value={term}
+            onChange={(e) => setTerm(Number(e.target.value))}
+            title="ภาคเรียน"
+          >
+            <option value={1}>ภาคเรียนที่ 1</option>
+            <option value={2}>ภาคเรียนที่ 2</option>
+          </select>
+          <select
+            className="select select-bordered select-sm"
+            value={teacherId}
+            onChange={(e) => setTeacherId(e.target.value)}
+          >
+            {teachers.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+                {t.subject ? ` (${t.subject})` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="card bg-base-100 shadow">

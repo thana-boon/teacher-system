@@ -40,12 +40,18 @@ export default async function TeacherDashboard() {
   const todayDow = jsDay === 0 || jsDay === 6 ? null : jsDay; // 1..5 weekdays
   const today = todayRange();
   const week = weekRange();
+  const settings = await getSettings();
 
-  const [todaySchedules, todayAttendance, weekCheckIns, pendingLeaves, settings] =
+  const [todaySchedules, todayAttendance, weekCheckIns, pendingLeaves] =
     await Promise.all([
       todayDow
         ? prisma.schedule.findMany({
-            where: { teacherId: session.teacherId, dayOfWeek: todayDow },
+            where: {
+              teacherId: session.teacherId,
+              dayOfWeek: todayDow,
+              year: settings.currentYear,
+              term: settings.currentTerm,
+            },
             orderBy: { period: "asc" },
             select: { id: true, period: true, room: true, subject: true },
           })

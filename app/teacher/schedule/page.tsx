@@ -10,13 +10,15 @@ export default async function TeacherSchedule() {
   const session = await getSessionWithRole("teacher");
   if (!session?.teacherId) redirect("/login");
 
-  const [schedules, settings] = await Promise.all([
-    prisma.schedule.findMany({
-      where: { teacherId: session.teacherId },
-      select: { dayOfWeek: true, period: true, room: true, subject: true },
-    }),
-    getSettings(),
-  ]);
+  const settings = await getSettings();
+  const schedules = await prisma.schedule.findMany({
+    where: {
+      teacherId: session.teacherId,
+      year: settings.currentYear,
+      term: settings.currentTerm,
+    },
+    select: { dayOfWeek: true, period: true, room: true, subject: true },
+  });
   const periods = settings.periods;
 
   const at = (day: number, period: number) =>
@@ -24,7 +26,12 @@ export default async function TeacherSchedule() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">ตารางสอนของฉัน</h1>
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-2xl font-bold">ตารางสอนของฉัน</h1>
+        <span className="text-sm text-base-content/60">
+          ปีการศึกษา {settings.currentYear} · ภาคเรียนที่ {settings.currentTerm}
+        </span>
+      </div>
 
       <div className="card bg-base-100 shadow">
         <div className="card-body p-2 sm:p-4">

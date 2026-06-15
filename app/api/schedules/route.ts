@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getSettings } from "@/lib/settings";
 
 // GET /api/schedules?teacherId=... — admin sees all (or filtered), teacher sees own
 export async function GET(request: Request) {
@@ -11,6 +12,8 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   let teacherId = searchParams.get("teacherId") ?? undefined;
+  const yearParam = searchParams.get("year");
+  const termParam = searchParams.get("term");
 
   if (session.role === "teacher") {
     teacherId = session.teacherId; // teachers are locked to their own data
@@ -18,8 +21,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "ไม่ได้รับอนุญาต" }, { status: 401 });
   }
 
+  const where: { teacherId?: string; year?: number; term?: number } = {};
+  if (teacherId) where.teacherId = teacherId;
+  if (yearParam) where.year = Number(yearParam);
+  if (termParam) where.term = Number(termParam);
+
   const schedules = await prisma.schedule.findMany({
-    where: teacherId ? { teacherId } : undefined,
+    where,
     orderBy: [{ dayOfWeek: "asc" }, { period: "asc" }],
     select: {
       id: true,
@@ -28,6 +36,8 @@ export async function GET(request: Request) {
       period: true,
       room: true,
       subject: true,
+      year: true,
+      term: true,
       teacher: { select: { user: { select: { name: true } } } },
     },
   });
@@ -41,6 +51,8 @@ export async function GET(request: Request) {
       period: s.period,
       room: s.room,
       subject: s.subject,
+      year: s.year,
+      term: s.term,
     })),
   );
 }
@@ -59,18 +71,25 @@ export async function POST(request: Request) {
   const room = String(body?.room ?? "").trim();
   const subject = String(body?.subject ?? "").trim();
 
+  // Fall back to the active academic period if the client doesn't specify one.
+  const settings = await getSettings();
+  const year = Number(body?.year) || settings.currentYear;
+  const term = [1, 2].includes(Number(body?.term))
+    ? Number(body.term)
+    : settings.currentTerm;
+
   if (
     !teacherId ||
     !room ||
     !subject ||
     !(dayOfWeek >= 1 && dayOfWeek <= 5) ||
-    !(period >= 1 && period <= 8)
+    !(period >= 1 && period <= 50)
   ) {
     return NextResponse.json({ error: "ข้อมูลไม่ครบถ้วน" }, { status: 400 });
   }
 
   const created = await prisma.schedule.create({
-    data: { teacherId, dayOfWeek, period, room, subject },
+    data: { teacherId, dayOfWeek, period, room, subject, year, term },
   });
 
   return NextResponse.json({ id: created.id }, { status: 201 });

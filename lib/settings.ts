@@ -6,6 +6,8 @@ export type SiteSettings = {
   schoolName: string;
   logoBase64: string | null;
   periods: PeriodSlot[];
+  currentYear: number;
+  currentTerm: number;
 };
 
 export const DEFAULT_SCHOOL_NAME = "โรงเรียนตัวอย่าง";
@@ -36,5 +38,7 @@ export async function getSettings(): Promise<SiteSettings> {
     schoolName: row?.schoolName?.trim() || DEFAULT_SCHOOL_NAME,
     logoBase64: row?.logoBase64 ?? null,
     periods: parsePeriods(row?.periods),
+    currentYear: row?.currentYear ?? 2569,
+    currentTerm: row?.currentTerm ?? 1,
   };
 }

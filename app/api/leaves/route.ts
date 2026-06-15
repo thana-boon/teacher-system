@@ -36,6 +36,16 @@ export async function GET(request: Request) {
     },
   });
 
+  // Resolve substitute teacher names (substituteId is a plain Teacher id).
+  const subIds = [...new Set(leaves.map((l) => l.substituteId).filter(Boolean) as string[])];
+  const subs = subIds.length
+    ? await prisma.teacher.findMany({
+        where: { id: { in: subIds } },
+        select: { id: true, user: { select: { name: true } } },
+      })
+    : [];
+  const subName = new Map(subs.map((t) => [t.id, t.user.name]));
+
   return NextResponse.json(
     leaves.map((l) => ({
       id: l.id,
@@ -46,6 +56,7 @@ export async function GET(request: Request) {
       type: l.type,
       status: l.status,
       substituteId: l.substituteId,
+      substituteName: l.substituteId ? subName.get(l.substituteId) ?? null : null,
       createdAt: l.createdAt,
     })),
   );

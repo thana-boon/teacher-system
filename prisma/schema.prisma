@@ -9,10 +9,12 @@ datasource db {
 // Singleton row (id = "default") holding site-wide configuration.
 model Setting {
   id         String   @id @default("default")
-  schoolName String   @default("โรงเรียนตัวอย่าง")
-  logoBase64 String? // data URL of the school logo
-  periods    String? // JSON: [{ "period":1, "start":"08:30", "end":"09:20" }, ...]
-  updatedAt  DateTime @updatedAt
+  schoolName  String   @default("โรงเรียนตัวอย่าง")
+  logoBase64  String? // data URL of the school logo
+  periods     String? // JSON: [{ "period":1, "start":"08:30", "end":"09:20" }, ...]
+  currentYear Int      @default(2569) // active academic year (พ.ศ.)
+  currentTerm Int      @default(1) // active term/semester (1 or 2)
+  updatedAt   DateTime @updatedAt
 }
 
 model User {
@@ -44,6 +46,8 @@ model Schedule {
   id          String       @id @default(cuid())
   teacherId   String
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
+  year        Int          @default(2569) // academic year (พ.ศ.)
+  term        Int          @default(1) // term/semester (1 or 2)
   dayOfWeek   Int          // 1-5 จันทร์-ศุกร์
   period      Int          // คาบที่
   room        String

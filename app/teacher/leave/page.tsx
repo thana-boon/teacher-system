@@ -9,6 +9,7 @@ type Leave = {
   reason: string;
   type: string;
   status: string;
+  substituteName: string | null;
   createdAt: string;
 };
 
@@ -139,6 +140,7 @@ export default function TeacherLeavePage() {
                       <th>วันที่ลา</th>
                       <th>ประเภท</th>
                       <th>เหตุผล</th>
+                      <th>สอนแทน</th>
                       <th>สถานะ</th>
                       <th></th>
                     </tr>
@@ -152,6 +154,13 @@ export default function TeacherLeavePage() {
                           <td>{leaveTypeLabel(l.type)}</td>
                           <td className="max-w-xs truncate" title={l.reason}>
                             {l.reason}
+                          </td>
+                          <td className="text-sm">
+                            {l.substituteName ? (
+                              <span className="badge badge-info badge-sm">{l.substituteName}</span>
+                            ) : (
+                              <span className="text-base-content/30">-</span>
+                            )}
                           </td>
                           <td>
                             <span className={`badge ${st?.badge ?? ""} badge-sm`}>

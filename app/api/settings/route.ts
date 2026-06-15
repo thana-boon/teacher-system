@@ -39,6 +39,8 @@ export async function PATCH(request: Request) {
     schoolName?: string;
     logoBase64?: string | null;
     periods?: string;
+    currentYear?: number;
+    currentTerm?: number;
   } = {};
   if (typeof body.schoolName === "string" && body.schoolName.trim())
     data.schoolName = body.schoolName.trim();
@@ -47,6 +49,10 @@ export async function PATCH(request: Request) {
     const periods = sanitizePeriods(body.periods);
     if (periods !== undefined) data.periods = periods;
   }
+  if (body.currentYear && Number(body.currentYear) > 0)
+    data.currentYear = Number(body.currentYear);
+  if ([1, 2].includes(Number(body.currentTerm)))
+    data.currentTerm = Number(body.currentTerm);
 
   await prisma.setting.upsert({
     where: { id: "default" },

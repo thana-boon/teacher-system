@@ -9,6 +9,8 @@ export default function SettingsPage() {
   const [logo, setLogo] = useState<string | null>(null);
   const [logoChanged, setLogoChanged] = useState(false);
   const [periods, setPeriods] = useState<PeriodSlot[]>([]);
+  const [currentYear, setCurrentYear] = useState(2569);
+  const [currentTerm, setCurrentTerm] = useState(1);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -19,6 +21,8 @@ export default function SettingsPage() {
         setSchoolName(s.schoolName ?? "");
         setLogo(s.logoBase64 ?? null);
         setPeriods(s.periods ?? []);
+        setCurrentYear(s.currentYear ?? 2569);
+        setCurrentTerm(s.currentTerm ?? 1);
         setLoading(false);
       });
   }, []);
@@ -59,6 +63,8 @@ export default function SettingsPage() {
       const payload: Record<string, unknown> = {
         schoolName,
         periods,
+        currentYear,
+        currentTerm,
       };
       if (logoChanged) payload.logoBase64 = logo;
       const res = await fetch("/api/settings", {
@@ -130,6 +136,38 @@ export default function SettingsPage() {
                 />
               </label>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Academic period */}
+      <div className="card bg-base-100 shadow">
+        <div className="card-body">
+          <h2 className="card-title text-lg">ปีการศึกษา / ภาคเรียน ปัจจุบัน</h2>
+          <p className="text-sm text-base-content/60">
+            ระบบจะแสดงตารางสอนของปี/ภาคเรียนนี้ให้ครูและหน้าเช็คชื่อ (แต่ละปี/เทอมมีตารางแยกกัน)
+          </p>
+          <div className="grid max-w-md grid-cols-2 gap-3">
+            <label className="form-control w-full">
+              <span className="label-text mb-1">ปีการศึกษา (พ.ศ.)</span>
+              <input
+                type="number"
+                className="input input-bordered w-full"
+                value={currentYear}
+                onChange={(e) => setCurrentYear(Number(e.target.value))}
+              />
+            </label>
+            <label className="form-control w-full">
+              <span className="label-text mb-1">ภาคเรียน</span>
+              <select
+                className="select select-bordered w-full"
+                value={currentTerm}
+                onChange={(e) => setCurrentTerm(Number(e.target.value))}
+              >
+                <option value={1}>ภาคเรียนที่ 1</option>
+                <option value={2}>ภาคเรียนที่ 2</option>
+              </select>
+            </label>
           </div>
         </div>
       </div>
