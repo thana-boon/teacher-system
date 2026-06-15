@@ -16,6 +16,9 @@ model Setting {
   currentTerm Int      @default(1) // active term/semester (1 or 2)
   lateGraceMinutes Int @default(5) // minutes after period start still counted on-time
   faceThreshold Float @default(0.45) // max face-match distance; lower = stricter
+  termStart   String? // current term start date "YYYY-MM-DD"
+  termEnd     String? // current term end date "YYYY-MM-DD"
+  holidays    String? // JSON: [{ "date":"YYYY-MM-DD", "name":"..." }]
   updatedAt   DateTime @updatedAt
 }
 

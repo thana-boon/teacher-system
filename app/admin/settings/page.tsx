@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import type { PeriodSlot } from "@/lib/constants";
+import { formatThaiDate } from "@/lib/constants";
 import { fileToDataUrl } from "@/lib/image";
+import ThaiDatePicker from "@/components/ThaiDatePicker";
+
+type Holiday = { date: string; name: string };
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -14,6 +22,11 @@ export default function SettingsPage() {
   const [currentTerm, setCurrentTerm] = useState(1);
   const [lateGrace, setLateGrace] = useState(5);
   const [faceThreshold, setFaceThreshold] = useState(0.45);
+  const [termStart, setTermStart] = useState("");
+  const [termEnd, setTermEnd] = useState("");
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [hDate, setHDate] = useState(todayStr());
+  const [hName, setHName] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -28,6 +41,9 @@ export default function SettingsPage() {
         setCurrentTerm(s.currentTerm ?? 1);
         setLateGrace(s.lateGraceMinutes ?? 5);
         setFaceThreshold(s.faceThreshold ?? 0.45);
+        setTermStart(s.termStart ?? "");
+        setTermEnd(s.termEnd ?? "");
+        setHolidays(s.holidays ?? []);
         setLoading(false);
       });
   }, []);
@@ -70,6 +86,9 @@ export default function SettingsPage() {
         currentTerm,
         lateGraceMinutes: lateGrace,
         faceThreshold,
+        termStart: termStart || null,
+        termEnd: termEnd || null,
+        holidays,
       };
       if (logoChanged) payload.logoBase64 = logo;
       const res = await fetch("/api/settings", {
@@ -187,6 +206,71 @@ export default function SettingsPage() {
               </span>
             </label>
           </div>
+        </div>
+      </div>
+
+      {/* Term range + holidays */}
+      <div className="card bg-base-100 shadow">
+        <div className="card-body">
+          <h2 className="card-title text-lg">ช่วงเปิดเทอม และวันหยุด</h2>
+          <p className="text-sm text-base-content/60">
+            รายงานจะนับ “ขาดสอน” เฉพาะวันทำการในช่วงเปิดเทอม และไม่ใช่วันหยุด
+          </p>
+          <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
+            <div>
+              <span className="label-text mb-1 block">วันเปิดเทอม</span>
+              <ThaiDatePicker value={termStart || todayStr()} onChange={setTermStart} />
+            </div>
+            <div>
+              <span className="label-text mb-1 block">วันปิดเทอม</span>
+              <ThaiDatePicker value={termEnd || todayStr()} onChange={setTermEnd} />
+            </div>
+          </div>
+
+          <div className="divider my-2">วันหยุด</div>
+          <div className="flex flex-wrap items-end gap-2">
+            <ThaiDatePicker value={hDate} onChange={setHDate} />
+            <input
+              className="input input-bordered input-sm"
+              placeholder="ชื่อวันหยุด (เช่น วันสงกรานต์)"
+              value={hName}
+              onChange={(e) => setHName(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                if (holidays.some((h) => h.date === hDate)) return;
+                setHolidays(
+                  [...holidays, { date: hDate, name: hName.trim() || "วันหยุด" }].sort((a, b) =>
+                    a.date.localeCompare(b.date),
+                  ),
+                );
+                setHName("");
+              }}
+            >
+              ➕ เพิ่มวันหยุด
+            </button>
+          </div>
+          {holidays.length > 0 && (
+            <ul className="mt-2 divide-y divide-base-200 rounded-box border border-base-200">
+              {holidays.map((h) => (
+                <li key={h.date} className="flex items-center justify-between px-3 py-2">
+                  <span>
+                    <span className="font-medium">{formatThaiDate(`${h.date}T00:00:00`)}</span>
+                    <span className="ml-2 text-base-content/60">{h.name}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs text-error"
+                    onClick={() => setHolidays(holidays.filter((x) => x.date !== h.date))}
+                  >
+                    ลบ
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

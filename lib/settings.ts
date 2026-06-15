@@ -10,6 +10,9 @@ export type SiteSettings = {
   currentTerm: number;
   lateGraceMinutes: number;
   faceThreshold: number;
+  termStart: string | null; // "YYYY-MM-DD"
+  termEnd: string | null;
+  holidays: { date: string; name: string }[];
 };
 
 export const DEFAULT_SCHOOL_NAME = "โรงเรียนตัวอย่าง";
@@ -33,6 +36,21 @@ function parsePeriods(raw: string | null | undefined): PeriodSlot[] {
   return DEFAULT_PERIODS;
 }
 
+function parseHolidays(raw: string | null | undefined): { date: string; name: string }[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((h) => ({ date: String(h.date ?? ""), name: String(h.name ?? "") }))
+        .filter((h) => /^\d{4}-\d{2}-\d{2}$/.test(h.date));
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
 /** Read site-wide settings (server-side), always returning sensible defaults. */
 export async function getSettings(): Promise<SiteSettings> {
   const row = await prisma.setting.findUnique({ where: { id: "default" } });
@@ -44,5 +62,8 @@ export async function getSettings(): Promise<SiteSettings> {
     currentTerm: row?.currentTerm ?? 1,
     lateGraceMinutes: row?.lateGraceMinutes ?? 5,
     faceThreshold: row?.faceThreshold ?? 0.45,
+    termStart: row?.termStart ?? null,
+    termEnd: row?.termEnd ?? null,
+    holidays: parseHolidays(row?.holidays),
   };
 }

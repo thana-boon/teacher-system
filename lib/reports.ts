@@ -104,7 +104,7 @@ export async function getMonthlyReport(month: string): Promise<MonthlyReport> {
 // Daily attendance grid: room x period, each cell = scheduled teacher + status
 // ---------------------------------------------------------------------------
 
-export type DailyCellStatus = "present" | "late" | "absent" | "leave";
+export type DailyCellStatus = "present" | "late" | "absent" | "leave" | "none";
 export type DailyCell = {
   room: string;
   period: number;
@@ -121,6 +121,8 @@ export type DailyReport = {
   periods: PeriodSlot[];
   rooms: string[];
   cells: DailyCell[];
+  holidayName: string | null;
+  inTerm: boolean;
 };
 
 export async function getDailyReport(date: string): Promise<DailyReport> {
@@ -130,8 +132,23 @@ export async function getDailyReport(date: string): Promise<DailyReport> {
   const weekday = zonedWeekday(anchor);
   const { gte, lte } = zonedDayRange(anchor);
 
+  const holidayName = settings.holidays.find((h) => h.date === date)?.name ?? null;
+  const inTerm =
+    (!settings.termStart || date >= settings.termStart) &&
+    (!settings.termEnd || date <= settings.termEnd);
+  // A normal teaching day counts missing check-ins as "ขาดสอน".
+  const countsAbsence = !!weekday && inTerm && !holidayName;
+
   if (!weekday) {
-    return { date, weekday: null, periods: settings.periods, rooms: [], cells: [] };
+    return {
+      date,
+      weekday: null,
+      periods: settings.periods,
+      rooms: [],
+      cells: [],
+      holidayName,
+      inTerm,
+    };
   }
 
   const [schedules, attendances, leaves] = await Promise.all([
@@ -176,7 +193,7 @@ export async function getDailyReport(date: string): Promise<DailyReport> {
     let status: DailyCellStatus;
     if (att) status = att.status === "late" ? "late" : "present";
     else if (onLeave.has(s.teacherId)) status = "leave";
-    else status = "absent";
+    else status = countsAbsence ? "absent" : "none";
     return {
       room: s.room,
       period: s.period,
@@ -190,7 +207,7 @@ export async function getDailyReport(date: string): Promise<DailyReport> {
   });
 
   const rooms = [...new Set(schedules.map((s) => s.room))].sort();
-  return { date, weekday, periods: settings.periods, rooms, cells };
+  return { date, weekday, periods: settings.periods, rooms, cells, holidayName, inTerm };
 }
 
 // ---------------------------------------------------------------------------
@@ -254,6 +271,7 @@ export async function getTeacherReport(
       .map((a) => [`${a.scheduleId}|${zonedYMD(a.checkIn!)}`, a]),
   );
   const leaveDays = new Set(leaves.map((l) => zonedYMD(l.date)));
+  const holidaySet = new Set(settings.holidays.map((h) => h.date));
   const byDow = new Map<number, typeof schedules>();
   for (const s of schedules) {
     if (!byDow.has(s.dayOfWeek)) byDow.set(s.dayOfWeek, []);
@@ -281,6 +299,10 @@ export async function getTeacherReport(
     const ymd = zonedYMD(d);
     const dow = zonedWeekday(d);
     if (!dow) continue;
+    // Skip days outside the term or on holidays — no class is "expected" then.
+    if (settings.termStart && ymd < settings.termStart) continue;
+    if (settings.termEnd && ymd > settings.termEnd) continue;
+    if (holidaySet.has(ymd)) continue;
     const daySchedules = byDow.get(dow) ?? [];
     for (const s of daySchedules) {
       r.expected++;

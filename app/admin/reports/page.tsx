@@ -13,12 +13,13 @@ import {
   type PeriodSlot,
 } from "@/lib/constants";
 
+type DailyStatus = "present" | "late" | "absent" | "leave" | "none";
 type DailyCell = {
   room: string;
   period: number;
   teacherName: string;
   subject: string;
-  status: "present" | "late" | "absent" | "leave";
+  status: DailyStatus;
   checkIn: string | null;
   checkOut: string | null;
   lateMinutes: number | null;
@@ -29,6 +30,8 @@ type DailyReport = {
   periods: PeriodSlot[];
   rooms: string[];
   cells: DailyCell[];
+  holidayName: string | null;
+  inTerm: boolean;
 };
 type TeacherReport = {
   name: string;
@@ -65,11 +68,12 @@ function thaiMonthLabel(ym: string) {
   return `${THAI_MONTHS[m - 1]} พ.ศ. ${y + 543}`;
 }
 
-const STATUS_BADGE: Record<DailyCell["status"], { label: string; cls: string }> = {
+const STATUS_BADGE: Record<DailyStatus, { label: string; cls: string }> = {
   present: { label: "เข้าสอน", cls: "badge-success" },
   late: { label: "สาย", cls: "badge-error" },
   absent: { label: "ขาดสอน", cls: "badge-warning" },
   leave: { label: "ลา", cls: "badge-info" },
+  none: { label: "-", cls: "badge-ghost" },
 };
 
 export default function ReportsPage() {
@@ -78,12 +82,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between print:hidden">
-        <h1 className="text-2xl font-bold">รายงาน</h1>
-        <button className="btn btn-outline btn-sm" onClick={() => window.print()}>
-          🖨️ พิมพ์ / PDF
-        </button>
-      </div>
+      <h1 className="text-2xl font-bold print:hidden">รายงาน</h1>
 
       {/* Main selector */}
       <div role="tablist" className="tabs tabs-box print:hidden">
@@ -154,11 +153,28 @@ function DailyView() {
       <div className="flex flex-wrap items-center gap-2 print:hidden">
         <span className="text-sm">เลือกวันที่:</span>
         <ThaiDatePicker value={date} onChange={setDate} />
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => window.open(`/print/daily?date=${date}`, "_blank")}
+        >
+          🖨️ ดูตัวอย่าง/พิมพ์
+        </button>
       </div>
       <p className="text-base-content/70">
         ตารางการเข้าสอน — วัน{data?.weekday ? dayLabel(data.weekday) + "ที่ " : ""}
         {formatThaiDate(`${date}T00:00:00`)}
       </p>
+
+      {data && data.holidayName && (
+        <div className="alert alert-info py-2">
+          <span>🎌 วันหยุด: {data.holidayName} (ไม่นับขาดสอน)</span>
+        </div>
+      )}
+      {data && !data.inTerm && (
+        <div className="alert alert-warning py-2">
+          <span>⚠ อยู่นอกช่วงเปิดเทอม (ไม่นับขาดสอน)</span>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center p-10">
@@ -293,6 +309,15 @@ function PersonView() {
           ))}
         </select>
         <ThaiMonthPicker value={month} onChange={setMonth} />
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() =>
+            window.open(`/print/teacher?teacherId=${teacherId}&month=${month}`, "_blank")
+          }
+          disabled={!teacherId}
+        >
+          🖨️ ดูตัวอย่าง/พิมพ์
+        </button>
       </div>
 
       {loading || !data ? (
@@ -400,6 +425,12 @@ function LeaveView() {
         <ThaiMonthPicker value={month} onChange={setMonth} />
         <button className="btn btn-outline btn-sm" onClick={exportCsv} disabled={!items.length}>
           ⬇️ Excel (CSV)
+        </button>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => window.open(`/print/leaves?month=${month}`, "_blank")}
+        >
+          🖨️ ดูตัวอย่าง/พิมพ์
         </button>
       </div>
       <p className="text-base-content/70">รายงานการลา — {thaiMonthLabel(month)}</p>

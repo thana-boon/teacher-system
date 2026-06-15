@@ -43,6 +43,9 @@ export async function PATCH(request: Request) {
     currentTerm?: number;
     lateGraceMinutes?: number;
     faceThreshold?: number;
+    termStart?: string | null;
+    termEnd?: string | null;
+    holidays?: string;
   } = {};
   if (typeof body.schoolName === "string" && body.schoolName.trim())
     data.schoolName = body.schoolName.trim();
@@ -60,6 +63,18 @@ export async function PATCH(request: Request) {
   if (body.faceThreshold !== undefined) {
     const v = Number(body.faceThreshold);
     if (v >= 0.3 && v <= 0.7) data.faceThreshold = v;
+  }
+  const isDate = (s: unknown) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  if ("termStart" in body) data.termStart = isDate(body.termStart) ? body.termStart : null;
+  if ("termEnd" in body) data.termEnd = isDate(body.termEnd) ? body.termEnd : null;
+  if (Array.isArray(body.holidays)) {
+    const cleaned = body.holidays
+      .filter((h: { date?: string }) => isDate(h?.date))
+      .map((h: { date: string; name?: string }) => ({
+        date: h.date,
+        name: String(h.name ?? "").trim() || "วันหยุด",
+      }));
+    data.holidays = JSON.stringify(cleaned);
   }
 
   await prisma.setting.upsert({
