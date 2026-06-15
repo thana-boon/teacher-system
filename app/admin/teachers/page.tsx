@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { fileToDataUrl } from "@/lib/image";
+import { getDescriptorFromDataUrl } from "@/lib/face";
 
 type Teacher = {
   id: string;
@@ -23,6 +25,7 @@ type FormState = {
   phone: string;
   photoBase64: string | null; // null = unchanged, "" = remove
   photoPreview: string | null;
+  faceData: string | null; // null = unchanged; JSON string when a face is detected
 };
 
 const EMPTY: FormState = {
@@ -34,6 +37,7 @@ const EMPTY: FormState = {
   phone: "",
   photoBase64: null,
   photoPreview: null,
+  faceData: null,
 };
 
 export default function TeachersPage() {
@@ -42,6 +46,7 @@ export default function TeachersPage() {
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [faceStatus, setFaceStatus] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,11 +61,13 @@ export default function TeachersPage() {
 
   function openAdd() {
     setError("");
+    setFaceStatus("");
     setForm({ ...EMPTY });
   }
 
   async function openEdit(t: Teacher) {
     setError("");
+    setFaceStatus(t.hasFace ? "มีข้อมูลใบหน้าอยู่แล้ว (อัปรูปใหม่เพื่ออัปเดต)" : "");
     // Load existing photo so the admin can see/replace it.
     let photoPreview: string | null = null;
     if (t.hasPhoto) {
@@ -77,18 +84,30 @@ export default function TeachersPage() {
       phone: t.phone ?? "",
       photoBase64: null,
       photoPreview,
+      faceData: null,
     });
   }
 
-  function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setForm((f) => (f ? { ...f, photoBase64: dataUrl, photoPreview: dataUrl } : f));
-    };
-    reader.readAsDataURL(file);
+    const dataUrl = await fileToDataUrl(file, { maxSize: 512, quality: 0.85 });
+    setForm((f) => (f ? { ...f, photoBase64: dataUrl, photoPreview: dataUrl } : f));
+
+    // Auto-detect a face in the uploaded photo for kiosk recognition.
+    setFaceStatus("กำลังตรวจจับใบหน้าในรูป…");
+    try {
+      const desc = await getDescriptorFromDataUrl(dataUrl);
+      if (desc) {
+        setForm((f) => (f ? { ...f, faceData: JSON.stringify([desc]) } : f));
+        setFaceStatus("✓ ตรวจพบใบหน้า — จะใช้สแกนเช็คชื่อได้");
+      } else {
+        setForm((f) => (f ? { ...f, faceData: null } : f));
+        setFaceStatus("⚠ ไม่พบใบหน้าในรูป — รูปจะถูกบันทึก แต่ใช้สแกนไม่ได้ (ลองรูปที่เห็นหน้าชัด)");
+      }
+    } catch {
+      setFaceStatus("⚠ ประมวลผลใบหน้าไม่สำเร็จ");
+    }
   }
 
   async function save() {
@@ -112,6 +131,7 @@ export default function TeachersPage() {
         payload.password = form.password;
       }
       if (form.photoBase64 !== null) payload.photoBase64 = form.photoBase64;
+      if (form.faceData !== null) payload.faceData = form.faceData;
 
       const res = await fetch(url, {
         method,
@@ -221,12 +241,17 @@ export default function TeachersPage() {
                     )}
                   </div>
                 </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="file-input file-input-bordered file-input-sm w-full"
-                  onChange={onPickPhoto}
-                />
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="file-input file-input-bordered file-input-sm w-full"
+                    onChange={onPickPhoto}
+                  />
+                  {faceStatus && (
+                    <p className="mt-1 text-xs text-base-content/70">{faceStatus}</p>
+                  )}
+                </div>
               </div>
 
               <input

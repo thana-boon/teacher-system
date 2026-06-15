@@ -66,10 +66,12 @@ export async function PATCH(
     subject?: string | null;
     phone?: string | null;
     photoBase64?: string | null;
+    faceData?: string | null;
   } = {};
   if ("subject" in body) teacherData.subject = body.subject || null;
   if ("phone" in body) teacherData.phone = body.phone || null;
   if ("photoBase64" in body) teacherData.photoBase64 = body.photoBase64 || null;
+  if ("faceData" in body) teacherData.faceData = body.faceData || null;
 
   if (Object.keys(teacherData).length) {
     await prisma.teacher.update({ where: { id }, data: teacherData });

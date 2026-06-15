@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import FaceEnrollModal from "@/components/FaceEnrollModal";
+import { fileToDataUrl } from "@/lib/image";
+import { getDescriptorFromDataUrl } from "@/lib/face";
 
 type Profile = {
   name: string;
@@ -24,6 +26,8 @@ export default function ProfilePage() {
   const [password, setPassword] = useState("");
   const [photo, setPhoto] = useState<string | null>(null); // current preview / data url
   const [photoChanged, setPhotoChanged] = useState(false);
+  const [pendingFace, setPendingFace] = useState<string | null>(null); // JSON faceData from uploaded photo
+  const [faceMsg, setFaceMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -43,15 +47,27 @@ export default function ProfilePage() {
       });
   }, []);
 
-  function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhoto(reader.result as string);
-      setPhotoChanged(true);
-    };
-    reader.readAsDataURL(file);
+    const dataUrl = await fileToDataUrl(file, { maxSize: 512, quality: 0.85 });
+    setPhoto(dataUrl);
+    setPhotoChanged(true);
+
+    // Derive face data from the uploaded photo (no live scan needed).
+    setFaceMsg("กำลังตรวจจับใบหน้าในรูป…");
+    try {
+      const desc = await getDescriptorFromDataUrl(dataUrl);
+      if (desc) {
+        setPendingFace(JSON.stringify([desc]));
+        setFaceMsg("✓ ตรวจพบใบหน้า — กด “บันทึก” เพื่อใช้สแกนเช็คชื่อ");
+      } else {
+        setPendingFace(null);
+        setFaceMsg("⚠ ไม่พบใบหน้าในรูป — ลองรูปที่เห็นหน้าชัด หรือใช้การสแกนสด");
+      }
+    } catch {
+      setFaceMsg("⚠ ประมวลผลใบหน้าไม่สำเร็จ");
+    }
   }
 
   async function save(e: React.FormEvent) {
@@ -62,6 +78,7 @@ export default function ProfilePage() {
       const payload: Record<string, unknown> = { name, subject, phone };
       if (password) payload.password = password;
       if (photoChanged) payload.photoBase64 = photo;
+      if (pendingFace) payload.faceData = pendingFace;
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -74,6 +91,11 @@ export default function ProfilePage() {
       }
       setPassword("");
       setPhotoChanged(false);
+      if (pendingFace) {
+        setHasFace(true);
+        setPendingFace(null);
+        setFaceMsg("");
+      }
       setMsg({ type: "success", text: "บันทึกข้อมูลเรียบร้อย" });
     } finally {
       setSaving(false);
@@ -122,12 +144,17 @@ export default function ProfilePage() {
                     <span className="badge badge-ghost badge-sm">ยังไม่ได้เก็บ</span>
                   )}
                 </div>
+                {faceMsg && <span className="text-center">{faceMsg}</span>}
+                <span className="text-base-content/50">
+                  อัปรูปที่เห็นหน้าชัดด้านบน ระบบจะดึงใบหน้าให้อัตโนมัติ
+                </span>
+                <div className="divider my-1 text-xs">หรือ</div>
                 <button
                   type="button"
                   className="btn btn-outline btn-xs"
                   onClick={() => setEnrolling(true)}
                 >
-                  📸 {hasFace ? "เก็บใบหน้าใหม่" : "เก็บข้อมูลใบหน้า"}
+                  📸 สแกนสดจากกล้อง
                 </button>
                 <span className="text-base-content/50">
                   ใช้สำหรับสแกนเช็คชื่อที่หน้า Kiosk

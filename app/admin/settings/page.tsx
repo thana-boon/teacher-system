@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { PeriodSlot } from "@/lib/constants";
+import { fileToDataUrl } from "@/lib/image";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -27,15 +28,13 @@ export default function SettingsPage() {
       });
   }, []);
 
-  function onPickLogo(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setLogo(reader.result as string);
-      setLogoChanged(true);
-    };
-    reader.readAsDataURL(file);
+    // PNG keeps logo transparency; smaller max size since it's just a logo.
+    const dataUrl = await fileToDataUrl(file, { maxSize: 256, mime: "image/png" });
+    setLogo(dataUrl);
+    setLogoChanged(true);
   }
 
   function removeLogo() {

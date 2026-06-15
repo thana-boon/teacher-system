@@ -54,6 +54,8 @@ export async function POST(request: Request) {
   const password = String(body.password ?? "");
   const subject = body.subject ? String(body.subject).trim() : null;
   const phone = body.phone ? String(body.phone).trim() : null;
+  const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
+  const faceData = body.faceData ? String(body.faceData) : null;
 
   if (!name || password.length < 6) {
     return NextResponse.json(
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
       email,
       password: await hashPassword(password),
       role: "teacher",
-      teacher: { create: { subject, phone } },
+      teacher: { create: { subject, phone, photoBase64, faceData } },
     },
     include: { teacher: { select: { id: true } } },
   });

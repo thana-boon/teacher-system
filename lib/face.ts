@@ -44,6 +44,20 @@ export async function getDescriptor(
   return res ? Array.from(res.descriptor) : null;
 }
 
+/** Compute a face descriptor from an image data URL (uploaded photo). */
+export async function getDescriptorFromDataUrl(
+  dataUrl: string,
+): Promise<number[] | null> {
+  await loadFaceModels();
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error("โหลดรูปไม่ได้"));
+    i.src = dataUrl;
+  });
+  return getDescriptor(img);
+}
+
 export type FaceCandidate = {
   teacherId: string;
   name: string;
