@@ -3,12 +3,6 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const DEMO = [
-  { label: "ผู้ดูแลระบบ", email: "admin@school.ac.th" },
-  { label: "ครู", email: "somchai@school.ac.th" },
-  { label: "Kiosk", email: "kiosk@school.ac.th" },
-];
-
 const HOME: Record<string, string> = {
   admin: "/admin/dashboard",
   teacher: "/teacher/dashboard",
@@ -113,25 +107,6 @@ function LoginForm() {
               เข้าสู่ระบบ
             </button>
           </form>
-
-          <div className="divider text-xs text-base-content/50">
-            บัญชีทดลอง (รหัส: password123)
-          </div>
-          <div className="flex flex-wrap justify-center gap-2">
-            {DEMO.map((d) => (
-              <button
-                key={d.email}
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => {
-                  setEmail(d.email);
-                  setPassword("password123");
-                }}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>

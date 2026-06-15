@@ -8,6 +8,7 @@ const NAV: NavItem[] = [
   { href: "/admin/schedule", label: "ตารางสอน", icon: "🗓️" },
   { href: "/admin/leaves", label: "การลา", icon: "📝" },
   { href: "/admin/reports", label: "รายงาน", icon: "📈" },
+  { href: "/admin/users", label: "จัดการผู้ใช้", icon: "👥" },
 ];
 
 export default async function AdminLayout({
