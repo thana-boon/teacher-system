@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { loadFaceModels, getDescriptor, findMatch, type FaceCandidate } from "@/lib/face";
+import {
+  loadFaceModels,
+  getDescriptor,
+  findMatch,
+  MATCH_THRESHOLD,
+  type FaceCandidate,
+} from "@/lib/face";
 
 type Props = {
   room: string;
@@ -15,6 +21,7 @@ export default function KioskScanModal({ room, type, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const candidatesRef = useRef<FaceCandidate[]>([]);
+  const thresholdRef = useRef<number>(MATCH_THRESHOLD);
   const scanningRef = useRef(false);
 
   const [status, setStatus] = useState("กำลังเตรียมกล้อง…");
@@ -80,7 +87,7 @@ export default function KioskScanModal({ room, type, onClose }: Props) {
       const d = await getDescriptor(videoRef.current);
       if (cancelled) return;
       if (d) {
-        const match = await findMatch(d, candidatesRef.current);
+        const match = await findMatch(d, candidatesRef.current, thresholdRef.current);
         if (match) {
           scanningRef.current = false;
           setStatus("");
@@ -97,15 +104,18 @@ export default function KioskScanModal({ room, type, onClose }: Props) {
     (async () => {
       try {
         await loadFaceModels();
-        const [stream, teachersRes] = await Promise.all([
+        const [stream, teachersRes, settingsRes] = await Promise.all([
           navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }),
           fetch("/api/kiosk/teachers").then((r) => r.json()),
+          fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
         ]);
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
         candidatesRef.current = teachersRes.teachers ?? [];
+        if (typeof settingsRes.faceThreshold === "number")
+          thresholdRef.current = settingsRes.faceThreshold;
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;

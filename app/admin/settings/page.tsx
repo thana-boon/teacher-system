@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const [currentYear, setCurrentYear] = useState(2569);
   const [currentTerm, setCurrentTerm] = useState(1);
   const [lateGrace, setLateGrace] = useState(5);
+  const [faceThreshold, setFaceThreshold] = useState(0.45);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -26,6 +27,7 @@ export default function SettingsPage() {
         setCurrentYear(s.currentYear ?? 2569);
         setCurrentTerm(s.currentTerm ?? 1);
         setLateGrace(s.lateGraceMinutes ?? 5);
+        setFaceThreshold(s.faceThreshold ?? 0.45);
         setLoading(false);
       });
   }, []);
@@ -67,6 +69,7 @@ export default function SettingsPage() {
         currentYear,
         currentTerm,
         lateGraceMinutes: lateGrace,
+        faceThreshold,
       };
       if (logoChanged) payload.logoBase64 = logo;
       const res = await fetch("/api/settings", {
@@ -184,6 +187,30 @@ export default function SettingsPage() {
               </span>
             </label>
           </div>
+        </div>
+      </div>
+
+      {/* Face recognition */}
+      <div className="card bg-base-100 shadow">
+        <div className="card-body">
+          <h2 className="card-title text-lg">การจดจำใบหน้า (Kiosk)</h2>
+          <label className="form-control w-full max-w-md">
+            <span className="label-text mb-1">ระดับความเข้มงวด</span>
+            <select
+              className="select select-bordered w-full"
+              value={faceThreshold}
+              onChange={(e) => setFaceThreshold(Number(e.target.value))}
+            >
+              <option value={0.4}>เข้มงวดมาก (กันจับผิดสูงสุด แต่อาจจำยาก)</option>
+              <option value={0.45}>เข้มงวด (แนะนำ)</option>
+              <option value={0.5}>ปานกลาง</option>
+              <option value={0.55}>ผ่อนปรน (จำง่าย แต่เสี่ยงจับผิด)</option>
+            </select>
+            <span className="mt-1 text-xs text-base-content/50">
+              ถ้าระบบจับหน้าผิดคน → เลือกเข้มงวดขึ้น · ถ้าจำคนถูกไม่ค่อยได้ → ผ่อนปรนลง
+              (เก็บใบหน้าหลายมุม/รูปชัดช่วยได้มาก)
+            </span>
+          </label>
         </div>
       </div>
 

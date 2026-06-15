@@ -42,6 +42,7 @@ export async function PATCH(request: Request) {
     currentYear?: number;
     currentTerm?: number;
     lateGraceMinutes?: number;
+    faceThreshold?: number;
   } = {};
   if (typeof body.schoolName === "string" && body.schoolName.trim())
     data.schoolName = body.schoolName.trim();
@@ -56,6 +57,10 @@ export async function PATCH(request: Request) {
     data.currentTerm = Number(body.currentTerm);
   if (body.lateGraceMinutes !== undefined && Number(body.lateGraceMinutes) >= 0)
     data.lateGraceMinutes = Math.round(Number(body.lateGraceMinutes));
+  if (body.faceThreshold !== undefined) {
+    const v = Number(body.faceThreshold);
+    if (v >= 0.3 && v <= 0.7) data.faceThreshold = v;
+  }
 
   await prisma.setting.upsert({
     where: { id: "default" },

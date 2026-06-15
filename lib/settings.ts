@@ -9,6 +9,7 @@ export type SiteSettings = {
   currentYear: number;
   currentTerm: number;
   lateGraceMinutes: number;
+  faceThreshold: number;
 };
 
 export const DEFAULT_SCHOOL_NAME = "โรงเรียนตัวอย่าง";
@@ -42,5 +43,6 @@ export async function getSettings(): Promise<SiteSettings> {
     currentYear: row?.currentYear ?? 2569,
     currentTerm: row?.currentTerm ?? 1,
     lateGraceMinutes: row?.lateGraceMinutes ?? 5,
+    faceThreshold: row?.faceThreshold ?? 0.45,
   };
 }

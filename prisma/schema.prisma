@@ -15,6 +15,7 @@ model Setting {
   currentYear Int      @default(2569) // active academic year (พ.ศ.)
   currentTerm Int      @default(1) // active term/semester (1 or 2)
   lateGraceMinutes Int @default(5) // minutes after period start still counted on-time
+  faceThreshold Float @default(0.45) // max face-match distance; lower = stricter
   updatedAt   DateTime @updatedAt
 }
 

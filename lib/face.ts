@@ -8,7 +8,7 @@ let modelsLoaded = false;
 
 const MODEL_URL = "/models";
 
-export const MATCH_THRESHOLD = 0.55; // lower = stricter (euclidean distance on descriptors)
+export const MATCH_THRESHOLD = 0.45; // lower = stricter (euclidean distance on descriptors)
 
 async function getApi(): Promise<FaceApi> {
   if (!faceapi) faceapi = await import("@vladmandic/face-api");
@@ -71,6 +71,7 @@ export type MatchResult = { teacherId: string; name: string; distance: number };
 export async function findMatch(
   descriptor: number[],
   candidates: FaceCandidate[],
+  threshold: number = MATCH_THRESHOLD,
 ): Promise<MatchResult | null> {
   const api = await getApi();
   const query = new Float32Array(descriptor);
@@ -83,5 +84,5 @@ export async function findMatch(
       }
     }
   }
-  return best && best.distance <= MATCH_THRESHOLD ? best : null;
+  return best && best.distance <= threshold ? best : null;
 }
