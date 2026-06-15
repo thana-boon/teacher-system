@@ -24,11 +24,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const required: Role | null = pathname.startsWith("/admin")
-    ? "admin"
-    : pathname.startsWith("/teacher")
-      ? "teacher"
-      : null;
+  const required: Role | null =
+    pathname.startsWith("/admin") || pathname.startsWith("/print")
+      ? "admin"
+      : pathname.startsWith("/teacher")
+        ? "teacher"
+        : null;
 
   if (required) {
     if (!session) {
@@ -45,5 +46,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/teacher/:path*", "/login"],
+  matcher: ["/admin/:path*", "/teacher/:path*", "/print/:path*", "/login"],
 };

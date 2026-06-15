@@ -65,3 +65,13 @@ export function hhmmToMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return (h || 0) * 60 + (m || 0);
 }
+
+/** UTC bounds for a calendar month ("YYYY-MM") in school time. `lt` is exclusive. */
+export function zonedMonthRange(ym: string): { gte: Date; lt: Date } {
+  const [y, m] = ym.split("-").map(Number);
+  const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  return {
+    gte: new Date(`${ym}-01T00:00:00.000${OFFSET}`),
+    lt: new Date(`${next}-01T00:00:00.000${OFFSET}`),
+  };
+}
