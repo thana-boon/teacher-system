@@ -21,7 +21,8 @@ export async function GET() {
     },
   });
 
-  // Don't ship full face embeddings / photos over the list endpoint.
+  // Photos are downscaled client-side (~50KB), so it's fine to include them
+  // for the list thumbnails. Face embeddings are still kept off the wire here.
   const list = teachers.map((t) => ({
     id: t.id,
     name: t.user.name,
@@ -29,6 +30,7 @@ export async function GET() {
     email: t.user.email,
     subject: t.subject,
     phone: t.phone,
+    photo: t.photoBase64,
     hasPhoto: !!t.photoBase64,
     hasFace: !!t.faceData,
   }));

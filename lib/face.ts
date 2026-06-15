@@ -8,7 +8,7 @@ let modelsLoaded = false;
 
 const MODEL_URL = "/models";
 
-export const MATCH_THRESHOLD = 0.5; // lower = stricter (euclidean distance on descriptors)
+export const MATCH_THRESHOLD = 0.55; // lower = stricter (euclidean distance on descriptors)
 
 async function getApi(): Promise<FaceApi> {
   if (!faceapi) faceapi = await import("@vladmandic/face-api");

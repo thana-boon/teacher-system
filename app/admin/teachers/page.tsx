@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { fileToDataUrl } from "@/lib/image";
 import { getDescriptorFromDataUrl } from "@/lib/face";
+import FaceEnrollModal from "@/components/FaceEnrollModal";
 
 type Teacher = {
   id: string;
@@ -11,6 +12,7 @@ type Teacher = {
   email: string | null;
   subject: string | null;
   phone: string | null;
+  photo: string | null;
   hasPhoto: boolean;
   hasFace: boolean;
 };
@@ -47,6 +49,7 @@ export default function TeachersPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [faceStatus, setFaceStatus] = useState("");
+  const [enrollFor, setEnrollFor] = useState<Teacher | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -191,7 +194,21 @@ export default function TeachersPage() {
                 <tbody>
                   {teachers.map((t) => (
                     <tr key={t.id}>
-                      <td className="font-medium">{t.name}</td>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="avatar avatar-placeholder">
+                            <div className="w-10 rounded-full bg-base-300">
+                              {t.photo ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={t.photo} alt={t.name} />
+                              ) : (
+                                <span>{t.name.charAt(0)}</span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="font-medium">{t.name}</span>
+                        </div>
+                      </td>
                       <td className="text-sm">{t.username ?? "-"}</td>
                       <td className="text-sm">{t.email ?? "-"}</td>
                       <td>{t.subject ?? "-"}</td>
@@ -207,6 +224,9 @@ export default function TeachersPage() {
                         </div>
                       </td>
                       <td className="text-right">
+                        <button className="btn btn-ghost btn-xs" onClick={() => setEnrollFor(t)}>
+                          📸 เก็บใบหน้า
+                        </button>
                         <button className="btn btn-ghost btn-xs" onClick={() => openEdit(t)}>
                           ✏️ แก้ไข
                         </button>
@@ -316,6 +336,15 @@ export default function TeachersPage() {
             <button>close</button>
           </form>
         </dialog>
+      )}
+
+      {/* Admin live-scan enrollment for a specific teacher */}
+      {enrollFor && (
+        <FaceEnrollModal
+          saveUrl={`/api/teachers/${enrollFor.id}`}
+          onClose={() => setEnrollFor(null)}
+          onSaved={load}
+        />
       )}
     </div>
   );

@@ -8,9 +8,11 @@ const MAX_SAMPLES = 5;
 export default function FaceEnrollModal({
   onClose,
   onSaved,
+  saveUrl = "/api/profile",
 }: {
   onClose: () => void;
   onSaved: () => void;
+  saveUrl?: string; // PATCH target accepting { faceData }; defaults to own profile
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -70,7 +72,7 @@ export default function FaceEnrollModal({
   async function save() {
     if (!samples.length) return;
     setSaving(true);
-    const res = await fetch("/api/profile", {
+    const res = await fetch(saveUrl, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ faceData: JSON.stringify(samples) }),
