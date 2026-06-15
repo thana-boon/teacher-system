@@ -77,7 +77,7 @@ export default function Shell({
             </label>
           </div>
           <div className="flex-1">
-            <span className="px-2 text-xl font-bold">ระบบบริหารการสอน 🐝</span>
+            <span className="px-2 text-xl font-bold">ระบบบริหารการสอน 🦆</span>
           </div>
           <div className="flex-none">
             <div className="dropdown dropdown-end">

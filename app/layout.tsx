@@ -9,7 +9,7 @@ const notoThai = Noto_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "ระบบบริหารการสอน 🐝",
+  title: "ระบบบริหารการสอน 🦆",
   description: "ระบบบริหารการสอนและการลาของครูโรงเรียน",
 };
 

@@ -61,7 +61,7 @@ function LoginForm() {
       <div className="card w-full max-w-md bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="mb-2 text-center">
-            <h1 className="text-3xl font-bold">ระบบบริหารการสอน 🐝</h1>
+            <h1 className="text-3xl font-bold">ระบบบริหารการสอน 🦆</h1>
             <p className="mt-1 text-base-content/60">เข้าสู่ระบบเพื่อใช้งาน</p>
           </div>
 
