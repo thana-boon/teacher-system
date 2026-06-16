@@ -12,6 +12,7 @@ const LABEL: Record<string, string> = {
   late: "สาย",
   absent: "ขาดสอน",
   leave: "ลา",
+  activity: "กิจกรรม",
   none: "-",
 };
 

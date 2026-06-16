@@ -71,14 +71,22 @@ export function weekdayOf(date: Date = new Date()): number | null {
   return d >= 1 && d <= 5 ? d : null;
 }
 
+// Types a teacher can pick when submitting a leave request.
 export const LEAVE_TYPES = [
   { value: "sick", label: "ลาป่วย" },
   { value: "personal", label: "ลากิจ" },
   { value: "other", label: "อื่น ๆ" },
 ] as const;
 
+// All known leave types incl. admin-only "official" (ไปราชการ). Used for display
+// only — "official" is not offered in the teacher leave form.
+const LEAVE_TYPE_LABELS: Record<string, string> = {
+  ...Object.fromEntries(LEAVE_TYPES.map((t) => [t.value, t.label])),
+  official: "ไปราชการ",
+};
+
 export function leaveTypeLabel(type: string): string {
-  return LEAVE_TYPES.find((t) => t.value === type)?.label ?? type;
+  return LEAVE_TYPE_LABELS[type] ?? type;
 }
 
 export const LEAVE_STATUS: Record<

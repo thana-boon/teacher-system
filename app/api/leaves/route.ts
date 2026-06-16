@@ -78,18 +78,54 @@ export async function GET(request: Request) {
   );
 }
 
-// POST /api/leaves — teacher submits a leave request
+// POST /api/leaves
+//  - teacher: submit a leave request (status pending)
+//  - admin: record an official duty (ไปราชการ) for a teacher — auto-approved with
+//    per-period substitutes. Body: { teacherId, date, reason, substitutions:[{scheduleId,substituteId}] }
 export async function POST(request: Request) {
   const session = await getSession();
-  if (session?.role !== "teacher" || !session.teacherId) {
+  if (!session) {
     return NextResponse.json({ error: "ไม่ได้รับอนุญาต" }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
   const date = body?.date ? new Date(body.date) : null;
   const reason = String(body?.reason ?? "").trim();
-  const type = String(body?.type ?? "");
 
+  if (session.role === "admin") {
+    const teacherId = String(body?.teacherId ?? "");
+    if (!teacherId || !date || isNaN(date.getTime())) {
+      return NextResponse.json({ error: "ข้อมูลไม่ครบถ้วน" }, { status: 400 });
+    }
+    const created = await prisma.leave.create({
+      data: {
+        teacherId,
+        date,
+        reason: reason || "ไปราชการ",
+        type: "official",
+        status: "approved",
+      },
+    });
+    // Per-period substitutes (same shape as the approve flow).
+    const subs = (Array.isArray(body?.substitutions) ? body.substitutions : [])
+      .filter(
+        (s: { scheduleId?: string; substituteId?: string }) =>
+          s?.scheduleId && s?.substituteId,
+      )
+      .map((s: { scheduleId: string; substituteId: string }) => ({
+        leaveId: created.id,
+        scheduleId: s.scheduleId,
+        substituteId: s.substituteId,
+      }));
+    if (subs.length) await prisma.substitution.createMany({ data: subs });
+    return NextResponse.json({ id: created.id }, { status: 201 });
+  }
+
+  if (session.role !== "teacher" || !session.teacherId) {
+    return NextResponse.json({ error: "ไม่ได้รับอนุญาต" }, { status: 401 });
+  }
+
+  const type = String(body?.type ?? "");
   if (!date || isNaN(date.getTime()) || !reason || !["sick", "personal", "other"].includes(type)) {
     return NextResponse.json({ error: "ข้อมูลไม่ครบถ้วน" }, { status: 400 });
   }

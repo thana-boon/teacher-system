@@ -75,6 +75,18 @@ model Leave {
   substitutions Substitution[]
 }
 
+// School-wide activity that blocks a whole period on a given date — every teacher
+// scheduled in that period is excused (not counted as ขาดสอน).
+model Activity {
+  id        String   @id @default(cuid())
+  date      String // "YYYY-MM-DD" (school local date), like Setting.holidays / termStart
+  period    Int
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([date, period])
+}
+
 // One row per (leave, schedule/period) — who covers that specific period.
 model Substitution {
   id           String   @id @default(cuid())

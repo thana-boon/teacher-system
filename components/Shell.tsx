@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import IdleLogout from "./IdleLogout";
+import Footer from "./Footer";
 
 export type NavItem = { href: string; label: string; icon: string };
 
@@ -128,6 +129,7 @@ export default function Shell({
         </header>
 
         <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <Footer />
       </div>
 
       <div className="drawer-side z-40 print:hidden">

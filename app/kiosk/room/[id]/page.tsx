@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import KioskScanModal from "@/components/KioskScanModal";
+import Footer from "@/components/Footer";
 import {
   currentPeriod,
   periodTime,
@@ -171,6 +172,8 @@ export default function KioskRoomPage({
           แตะปุ่มแล้วหันหน้าเข้ากล้องเพื่อสแกนใบหน้า
         </p>
       </main>
+
+      <Footer />
 
       {scan && (
         <KioskScanModal

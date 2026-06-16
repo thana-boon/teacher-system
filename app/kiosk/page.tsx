@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Footer from "@/components/Footer";
 
 const ROOM_KEY = "kioskRoom";
 
@@ -37,7 +38,8 @@ export default function KioskLanding() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-base-200 p-6">
+    <div className="flex min-h-screen flex-col bg-base-200">
+      <div className="flex flex-1 flex-col items-center justify-center p-6">
       <div className="mb-6 text-center">
         {school.logoBase64 ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -66,6 +68,8 @@ export default function KioskLanding() {
           ))}
         </div>
       )}
+      </div>
+      <Footer />
     </div>
   );
 }

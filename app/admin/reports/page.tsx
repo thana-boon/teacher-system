@@ -13,7 +13,7 @@ import {
   type PeriodSlot,
 } from "@/lib/constants";
 
-type DailyStatus = "present" | "late" | "absent" | "leave" | "none";
+type DailyStatus = "present" | "late" | "absent" | "leave" | "activity" | "none";
 type DailyCell = {
   room: string;
   period: number;
@@ -73,6 +73,7 @@ const STATUS_BADGE: Record<DailyStatus, { label: string; cls: string }> = {
   late: { label: "สาย", cls: "badge-error" },
   absent: { label: "ขาดสอน", cls: "badge-warning" },
   leave: { label: "ลา", cls: "badge-info" },
+  activity: { label: "กิจกรรม", cls: "badge-secondary" },
   none: { label: "-", cls: "badge-ghost" },
 };
 

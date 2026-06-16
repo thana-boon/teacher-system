@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Footer from "@/components/Footer";
 
 const HOME: Record<string, string> = {
   admin: "/admin/dashboard",
@@ -64,7 +65,8 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-base-200 p-4">
+    <div className="flex min-h-screen flex-col bg-base-200">
+      <div className="flex flex-1 items-center justify-center p-4">
       <div className="card w-full max-w-md bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="mb-2 text-center">
@@ -134,6 +136,8 @@ function LoginForm() {
           </form>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

@@ -8,6 +8,7 @@ const NAV: NavItem[] = [
   { href: "/admin/teachers", label: "จัดการครู", icon: "👩‍🏫" },
   { href: "/admin/schedule", label: "ตารางสอน", icon: "🗓️" },
   { href: "/admin/leaves", label: "การลา", icon: "📝" },
+  { href: "/admin/activities", label: "กิจกรรม/ราชการ", icon: "📌" },
   { href: "/admin/reports", label: "รายงาน", icon: "📈" },
   { href: "/admin/users", label: "จัดการผู้ใช้", icon: "👥" },
   { href: "/admin/settings", label: "ตั้งค่าเว็บไซต์", icon: "⚙️" },

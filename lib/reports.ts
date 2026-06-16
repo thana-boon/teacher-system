@@ -104,7 +104,7 @@ export async function getMonthlyReport(month: string): Promise<MonthlyReport> {
 // Daily attendance grid: room x period, each cell = scheduled teacher + status
 // ---------------------------------------------------------------------------
 
-export type DailyCellStatus = "present" | "late" | "absent" | "leave" | "none";
+export type DailyCellStatus = "present" | "late" | "absent" | "leave" | "activity" | "none";
 export type DailyCell = {
   room: string;
   period: number;
@@ -151,7 +151,7 @@ export async function getDailyReport(date: string): Promise<DailyReport> {
     };
   }
 
-  const [schedules, attendances, leaves] = await Promise.all([
+  const [schedules, attendances, leaves, activities] = await Promise.all([
     prisma.schedule.findMany({
       where: {
         dayOfWeek: weekday,
@@ -181,18 +181,21 @@ export async function getDailyReport(date: string): Promise<DailyReport> {
       where: { status: "approved", date: { gte, lte } },
       select: { teacherId: true },
     }),
+    prisma.activity.findMany({ where: { date }, select: { period: true } }),
   ]);
 
   const attBySchedule = new Map(
     attendances.filter((a) => a.scheduleId).map((a) => [a.scheduleId!, a]),
   );
   const onLeave = new Set(leaves.map((l) => l.teacherId));
+  const activityPeriods = new Set(activities.map((a) => a.period));
 
   const cells: DailyCell[] = schedules.map((s) => {
     const att = attBySchedule.get(s.id);
     let status: DailyCellStatus;
     if (att) status = att.status === "late" ? "late" : "present";
     else if (onLeave.has(s.teacherId)) status = "leave";
+    else if (activityPeriods.has(s.period)) status = "activity";
     else status = countsAbsence ? "absent" : "none";
     return {
       room: s.room,
@@ -243,7 +246,7 @@ export async function getTeacherReport(
   });
   if (!teacher) return null;
 
-  const [schedules, attendances, leaves] = await Promise.all([
+  const [schedules, attendances, leaves, activities] = await Promise.all([
     prisma.schedule.findMany({
       where: { teacherId, year: settings.currentYear, term: settings.currentTerm },
       select: { id: true, dayOfWeek: true, period: true, room: true, subject: true },
@@ -262,6 +265,7 @@ export async function getTeacherReport(
       where: { teacherId, status: "approved", date: { gte, lt } },
       select: { date: true },
     }),
+    prisma.activity.findMany({ select: { date: true, period: true } }),
   ]);
 
   // attendance keyed by scheduleId + local date
@@ -272,6 +276,8 @@ export async function getTeacherReport(
   );
   const leaveDays = new Set(leaves.map((l) => zonedYMD(l.date)));
   const holidaySet = new Set(settings.holidays.map((h) => h.date));
+  // "date|period" pairs cancelled by a school-wide activity — no class expected.
+  const activitySet = new Set(activities.map((a) => `${a.date}|${a.period}`));
   const byDow = new Map<number, typeof schedules>();
   for (const s of schedules) {
     if (!byDow.has(s.dayOfWeek)) byDow.set(s.dayOfWeek, []);
@@ -305,6 +311,8 @@ export async function getTeacherReport(
     if (holidaySet.has(ymd)) continue;
     const daySchedules = byDow.get(dow) ?? [];
     for (const s of daySchedules) {
+      // A school-wide activity cancels this period — not expected, not absent.
+      if (activitySet.has(`${ymd}|${s.period}`)) continue;
       r.expected++;
       const att = attByKey.get(`${s.id}|${ymd}`);
       if (att) {
